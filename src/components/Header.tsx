@@ -29,10 +29,11 @@ const Header = () => {
           </a>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Button variant="therapeutic" size="sm" className="hidden sm:flex">
-            <PenTool className="h-4 w-4 mr-2" />
-            New Journal
+            <PenTool className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden lg:inline">New Journal</span>
+            <span className="lg:hidden">Journal</span>
           </Button>
           <Button variant="gentle" size="sm">
             <User className="h-4 w-4" />

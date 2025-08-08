@@ -65,7 +65,7 @@ const JournalFeed = () => {
 
         {/* Create Post Button */}
         <div className="flex justify-center">
-          <Button variant="therapeutic" size="lg" className="shadow-therapeutic">
+          <Button variant="therapeutic" size="lg" className="shadow-therapeutic w-full sm:w-auto max-w-xs sm:max-w-none">
             Share Your Story
           </Button>
         </div>

@@ -35,13 +35,13 @@ const HeroSection = () => {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button variant="therapeutic" size="lg" className="text-lg px-8 py-6 h-auto">
-              <PenTool className="h-5 w-5 mr-2" />
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center w-full max-w-md sm:max-w-none mx-auto">
+            <Button variant="therapeutic" size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto">
+              <PenTool className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Start Journaling
             </Button>
-            <Button variant="gentle" size="lg" className="text-lg px-8 py-6 h-auto">
-              <Users className="h-5 w-5 mr-2" />
+            <Button variant="gentle" size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Join Community
             </Button>
           </div>
