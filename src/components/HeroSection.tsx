@@ -1,8 +1,29 @@
 import { Button } from "@/components/ui/button";
 import { PenTool, Users, Brain, Shield } from "lucide-react";
 import heroImage from "@/assets/hero-mindful.jpg";
+import { useToast } from "@/hooks/use-toast";
 
 const HeroSection = () => {
+  const { toast } = useToast();
+
+  const handleStartJournaling = () => {
+    toast({
+      title: "Welcome to Your Journey! 🌱",
+      description: "Let's create your first journal entry together.",
+    });
+    // Scroll to journal section
+    document.getElementById('journal')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleJoinCommunity = () => {
+    toast({
+      title: "Welcome to Our Community! 💙",
+      description: "Connecting you with others on similar journeys.",
+    });
+    // Scroll to community section
+    document.getElementById('community')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
       {/* Background Image */}
@@ -36,11 +57,21 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center w-full max-w-md sm:max-w-none mx-auto">
-            <Button variant="therapeutic" size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto">
+            <Button 
+              variant="therapeutic" 
+              size="lg" 
+              className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto"
+              onClick={handleStartJournaling}
+            >
               <PenTool className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Start Journaling
             </Button>
-            <Button variant="gentle" size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto">
+            <Button 
+              variant="gentle" 
+              size="lg" 
+              className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto"
+              onClick={handleJoinCommunity}
+            >
               <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Join Community
             </Button>

@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ChevronUp, ChevronDown, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface JournalPostProps {
   id: string;
@@ -29,6 +30,7 @@ const JournalPost = ({
   tags,
   imageUrl 
 }: JournalPostProps) => {
+  const { toast } = useToast();
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [voteState, setVoteState] = useState<'up' | 'down' | null>(null);
 
@@ -36,6 +38,10 @@ const JournalPost = ({
     if (voteState === type) {
       setVoteState(null);
       setUpvotes(type === 'up' ? upvotes - 1 : upvotes + 1);
+      toast({
+        title: type === 'up' ? "Upvote removed" : "Downvote removed",
+        description: "Your vote has been removed.",
+      });
     } else {
       if (voteState) {
         setUpvotes(type === 'up' ? upvotes + 2 : upvotes - 2);
@@ -43,7 +49,32 @@ const JournalPost = ({
         setUpvotes(type === 'up' ? upvotes + 1 : upvotes - 1);
       }
       setVoteState(type);
+      toast({
+        title: type === 'up' ? "Post upvoted! 💙" : "Post downvoted",
+        description: type === 'up' ? "Thank you for supporting this story." : "Your feedback has been recorded.",
+      });
     }
+  };
+
+  const handleComment = () => {
+    toast({
+      title: "Comments",
+      description: "Opening comments section...",
+    });
+  };
+
+  const handleShare = () => {
+    toast({
+      title: "Post shared! 🤝",
+      description: "This story has been shared with others.",
+    });
+  };
+
+  const handleMoreOptions = () => {
+    toast({
+      title: "More options",
+      description: "Opening post options...",
+    });
   };
 
   return (
@@ -91,7 +122,7 @@ const JournalPost = ({
                   <span className="ml-2">• {timeAgo}</span>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleMoreOptions}>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </div>
@@ -129,11 +160,11 @@ const JournalPost = ({
 
       <CardFooter className="px-6 py-4 border-t bg-muted/30">
         <div className="flex gap-4 w-full">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={handleComment}>
             <MessageCircle className="h-4 w-4 mr-2" />
             {comments} comments
           </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={handleShare}>
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>

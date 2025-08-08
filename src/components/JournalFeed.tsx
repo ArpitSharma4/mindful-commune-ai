@@ -2,8 +2,18 @@ import JournalPost from "./JournalPost";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Clock, Heart } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const JournalFeed = () => {
+  const { toast } = useToast();
+
+  const handleShareStory = () => {
+    toast({
+      title: "Share Your Story 📝",
+      description: "Opening the journal editor to create your post...",
+    });
+  };
+
   // Mock data for journal posts
   const posts = [
     {
@@ -65,7 +75,12 @@ const JournalFeed = () => {
 
         {/* Create Post Button */}
         <div className="flex justify-center">
-          <Button variant="therapeutic" size="lg" className="shadow-therapeutic w-full sm:w-auto max-w-xs sm:max-w-none">
+          <Button 
+            variant="therapeutic" 
+            size="lg" 
+            className="shadow-therapeutic w-full sm:w-auto max-w-xs sm:max-w-none"
+            onClick={handleShareStory}
+          >
             Share Your Story
           </Button>
         </div>
