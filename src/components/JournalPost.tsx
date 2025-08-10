@@ -2,8 +2,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ChevronUp, ChevronDown, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { ChevronUp, ChevronDown, MessageCircle, Share2, MoreHorizontal, Bookmark, Eye } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 interface JournalPostProps {
@@ -33,6 +33,15 @@ const JournalPost = ({
   const { toast } = useToast();
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [voteState, setVoteState] = useState<'up' | 'down' | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [viewCount, setViewCount] = useState(Math.floor(Math.random() * 500) + 50);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleVote = (type: 'up' | 'down') => {
     if (voteState === type) {
@@ -77,8 +86,26 @@ const JournalPost = ({
     });
   };
 
+  const handleBookmark = () => {
+    setIsBookmarked(!isBookmarked);
+    toast({
+      title: isBookmarked ? "Bookmark removed" : "Post bookmarked! 📚",
+      description: isBookmarked ? "Removed from your saved posts." : "Added to your saved posts for later reading.",
+    });
+  };
+
+  const handleExpand = () => {
+    setIsExpanded(!isExpanded);
+    if (!isExpanded) {
+      setViewCount(prev => prev + 1);
+    }
+  };
+
+  const truncatedContent = content.length > 200 ? content.substring(0, 200) + "..." : content;
+  const shouldShowReadMore = content.length > 200;
+
   return (
-    <Card className="w-full bg-gradient-card animate-fade-in hover:shadow-therapeutic transition-all duration-300">
+    <Card className={`w-full bg-gradient-card hover:shadow-therapeutic transition-all duration-500 transform hover:scale-[1.02] ${isVisible ? 'animate-fade-in opacity-100' : 'opacity-0'} ${isExpanded ? 'shadow-lg' : ''}`}>
       <CardContent className="p-6">
         <div className="flex gap-4">
           {/* Vote Section */}
@@ -134,7 +161,17 @@ const JournalPost = ({
 
             {/* Content */}
             <div className="text-sm text-foreground leading-relaxed">
-              {content}
+              <div className={`transition-all duration-300 ${isExpanded ? 'max-h-none' : 'max-h-32 overflow-hidden'}`}>
+                {isExpanded ? content : truncatedContent}
+              </div>
+              {shouldShowReadMore && (
+                <button 
+                  onClick={handleExpand}
+                  className="text-primary hover:text-primary/80 text-sm font-medium mt-2 transition-colors duration-200"
+                >
+                  {isExpanded ? 'Read less' : 'Read more'}
+                </button>
+              )}
             </div>
 
             {/* Image if present */}
@@ -146,10 +183,15 @@ const JournalPost = ({
 
             {/* Tags */}
             {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 animate-fade-in">
                 {tags.map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {tag}
+                  <Badge 
+                    key={index} 
+                    variant="secondary" 
+                    className="text-xs hover:bg-primary/20 transition-colors duration-200 cursor-pointer transform hover:scale-105"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    #{tag}
                   </Badge>
                 ))}
               </div>
@@ -158,16 +200,31 @@ const JournalPost = ({
         </div>
       </CardContent>
 
-      <CardFooter className="px-6 py-4 border-t bg-muted/30">
-        <div className="flex gap-4 w-full">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={handleComment}>
-            <MessageCircle className="h-4 w-4 mr-2" />
-            {comments} comments
-          </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={handleShare}>
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
-          </Button>
+      <CardFooter className="px-6 py-4 border-t bg-muted/30 backdrop-blur-sm">
+        <div className="flex justify-between items-center w-full">
+          <div className="flex gap-4">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105" onClick={handleComment}>
+              <MessageCircle className="h-4 w-4 mr-2 transition-transform duration-200 hover:rotate-12" />
+              {comments} comments
+            </Button>
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105" onClick={handleShare}>
+              <Share2 className="h-4 w-4 mr-2 transition-transform duration-200 hover:rotate-12" />
+              Share
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={`transition-all duration-200 hover:scale-105 ${isBookmarked ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              onClick={handleBookmark}
+            >
+              <Bookmark className={`h-4 w-4 mr-2 transition-all duration-200 ${isBookmarked ? 'fill-current' : ''}`} />
+              {isBookmarked ? 'Saved' : 'Save'}
+            </Button>
+          </div>
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Eye className="h-3 w-3 mr-1" />
+            {viewCount} views
+          </div>
         </div>
       </CardFooter>
     </Card>

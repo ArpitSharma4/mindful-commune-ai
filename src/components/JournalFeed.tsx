@@ -1,11 +1,17 @@
 import JournalPost from "./JournalPost";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Clock, Heart } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { TrendingUp, Clock, Heart, Search, Filter, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 const JournalFeed = () => {
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("trending");
+  const [isLoading, setIsLoading] = useState(false);
+  const [filteredPosts, setFilteredPosts] = useState([]);
 
   const handleShareStory = () => {
     toast({
@@ -14,8 +20,15 @@ const JournalFeed = () => {
     });
   };
 
-  // Mock data for journal posts
-  const posts = [
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setIsLoading(true);
+    // Simulate search delay
+    setTimeout(() => setIsLoading(false), 300);
+  };
+
+  // Mock data for journal posts with dynamic content
+  const allPosts = [
     {
       id: "1",
       title: "Finding peace in small moments",
@@ -62,23 +75,65 @@ const JournalFeed = () => {
     }
   ];
 
+  // Filter posts based on search term
+  const getFilteredPosts = () => {
+    if (!searchTerm) return allPosts;
+    return allPosts.filter(post => 
+      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  };
+
+  const posts = getFilteredPosts();
+
+  useEffect(() => {
+    setFilteredPosts(posts);
+  }, [searchTerm, activeTab]);
+
   return (
     <section className="container px-4 py-12">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h2 className="text-3xl md:text-4xl font-bold">Community Journal</h2>
-          <p className="text-lg text-muted-foreground">
+          <h2 className="text-3xl md:text-4xl font-bold animate-fade-in">
+            Community Journal
+            <Sparkles className="inline-block h-8 w-8 ml-2 text-primary animate-pulse" />
+          </h2>
+          <p className="text-lg text-muted-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
             Share your story, find support, and connect with others on their mental health journey
           </p>
         </div>
 
+        {/* Search Bar */}
+        <div className="max-w-md mx-auto animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search stories, topics, or tags..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10 pr-10 bg-muted/50 backdrop-blur-sm border-muted focus:border-primary transition-all duration-300"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                onClick={() => handleSearch("")}
+              >
+                ×
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Create Post Button */}
-        <div className="flex justify-center">
+        <div className="flex justify-center animate-fade-in" style={{ animationDelay: '0.6s' }}>
           <Button 
             variant="therapeutic" 
             size="lg" 
-            className="shadow-therapeutic w-full sm:w-auto max-w-xs sm:max-w-none"
+            className="shadow-therapeutic w-full sm:w-auto max-w-xs sm:max-w-none transition-all duration-300 hover:scale-105 hover:shadow-lg"
             onClick={handleShareStory}
           >
             Share Your Story
@@ -86,39 +141,95 @@ const JournalFeed = () => {
         </div>
 
         {/* Feed Tabs */}
-        <Tabs defaultValue="trending" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50">
-            <TabsTrigger value="trending" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
+        <Tabs defaultValue="trending" className="w-full animate-fade-in" style={{ animationDelay: '0.8s' }} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50 backdrop-blur-sm">
+            <TabsTrigger 
+              value="trending" 
+              className="flex items-center gap-2 transition-all duration-200 hover:scale-105"
+            >
+              <TrendingUp className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" />
               Trending
             </TabsTrigger>
-            <TabsTrigger value="recent" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
+            <TabsTrigger 
+              value="recent" 
+              className="flex items-center gap-2 transition-all duration-200 hover:scale-105"
+            >
+              <Clock className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" />
               Recent
             </TabsTrigger>
-            <TabsTrigger value="following" className="flex items-center gap-2">
-              <Heart className="h-4 w-4" />
+            <TabsTrigger 
+              value="following" 
+              className="flex items-center gap-2 transition-all duration-200 hover:scale-105"
+            >
+              <Heart className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
               Following
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="trending" className="space-y-6">
-            {posts.map((post) => (
-              <JournalPost key={post.id} {...post} />
-            ))}
+            {isLoading ? (
+              <div className="space-y-6">
+                {[1,2,3].map((i) => (
+                  <div key={i} className="h-64 bg-muted/50 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : posts.length > 0 ? (
+              posts.map((post, index) => (
+                <div 
+                  key={post.id} 
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <JournalPost {...post} />
+                </div>
+              ))
+            ) : searchTerm ? (
+              <div className="text-center py-12 animate-fade-in">
+                <p className="text-muted-foreground">No stories found matching "{searchTerm}"</p>
+                <Button variant="ghost" onClick={() => handleSearch("")} className="mt-2">
+                  Clear search
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No trending stories right now</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="recent" className="space-y-6">
-            {posts.slice().reverse().map((post) => (
-              <JournalPost key={post.id} {...post} />
-            ))}
+            {isLoading ? (
+              <div className="space-y-6">
+                {[1,2,3].map((i) => (
+                  <div key={i} className="h-64 bg-muted/50 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : posts.length > 0 ? (
+              posts.slice().reverse().map((post, index) => (
+                <div 
+                  key={post.id} 
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <JournalPost {...post} />
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No recent stories available</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="following" className="space-y-6">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
+            <div className="text-center py-12 animate-fade-in">
+              <Heart className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+              <p className="text-muted-foreground mb-4">
                 Follow other community members to see their posts here
               </p>
+              <Button variant="gentle" onClick={() => setActiveTab("trending")}>
+                Browse trending stories
+              </Button>
             </div>
           </TabsContent>
         </Tabs>
