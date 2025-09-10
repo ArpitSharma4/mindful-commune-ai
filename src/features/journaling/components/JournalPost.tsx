@@ -18,6 +18,7 @@ interface JournalPostProps {
   tags: string[];
   community: string;
   imageUrl?: string;
+  disableAnimations?: boolean;
 }
 
 const JournalPost = ({ 
@@ -30,7 +31,8 @@ const JournalPost = ({
   comments, 
   tags,
   community,
-  imageUrl 
+  imageUrl,
+  disableAnimations
 }: JournalPostProps) => {
   const { toast } = useToast();
   const [upvotes, setUpvotes] = useState(initialUpvotes);
@@ -41,9 +43,13 @@ const JournalPost = ({
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    if (disableAnimations) {
+      setIsVisible(true);
+      return;
+    }
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [disableAnimations]);
 
   const handleVote = (type: 'up' | 'down') => {
     if (voteState === type) {
@@ -107,7 +113,7 @@ const JournalPost = ({
   const shouldShowReadMore = content.length > 200;
 
   return (
-    <Card className={`w-full bg-gradient-card hover:shadow-therapeutic transition-all duration-500 transform hover:scale-[1.02] ${isVisible ? 'animate-fade-in opacity-100' : 'opacity-0'} ${isExpanded ? 'shadow-lg' : ''}`}>
+    <Card className={`w-full bg-gradient-card hover:shadow-therapeutic transition-all duration-500 transform hover:scale-[1.02] ${disableAnimations ? '' : (isVisible ? 'animate-fade-in opacity-100' : 'opacity-0')} ${isExpanded ? 'shadow-lg' : ''}`}>
       <CardContent className="p-6">
         <div className="flex gap-4">
           {/* Vote Section */}
@@ -186,13 +192,13 @@ const JournalPost = ({
 
             {/* Tags */}
             {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 animate-fade-in">
+              <div className={`flex flex-wrap gap-2 ${disableAnimations ? '' : 'animate-fade-in'}`}>
                 {tags.map((tag, index) => (
                   <Badge 
                     key={index} 
                     variant="secondary" 
                     className="text-xs hover:bg-primary/20 transition-colors duration-200 cursor-pointer transform hover:scale-105"
-                    style={{ animationDelay: `${index * 0.1}s` }}
+                    style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                   >
                     #{tag}
                   </Badge>

@@ -20,17 +20,17 @@ const Index = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="fixed left-6 top-24 z-60 h-9 w-9 rounded-full bg-background border shadow"
+              className="fixed left-6 top-24 z-60 h-10 w-10 rounded-full bg-teal-500 hover:bg-teal-600 text-white shadow"
               aria-label="Open sidebar"
               onClick={() => setIsSidebarOpen(true)}
             >
-              <Leaf className="h-4 w-4 text-primary" />
+              <Leaf className="h-5 w-5 text-white" />
             </Button>
           </div>
         )}
         <div className={isSidebarOpen ? "grid grid-cols-1 md:grid-cols-[14rem_1fr] gap-6" : "grid grid-cols-1 gap-6"}>
           {isSidebarOpen && (
-            <div className="sticky top-16 self-start">
+            <div className="sticky top-3 self-start">
               <LeftSidebar onClose={() => setIsSidebarOpen(false)} />
             </div>
           )}

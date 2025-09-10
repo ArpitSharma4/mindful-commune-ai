@@ -1,25 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, Menu, User, PenTool, HelpCircle, Bell, Search } from "lucide-react";
+import { Heart, Menu, User, HelpCircle, Search, Moon, Sun } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { RedditStylePostEditor } from "@/features/journaling/components";
+import { useState } from "react";
+import { useTheme } from "next-themes";
+import HelpModal from "./HelpModal";
 
 const Header = () => {
   const { toast } = useToast();
-  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
-  const handleNewJournal = () => {
-    setIsCreatePostOpen(true);
-  };
 
-  // Auto-open editor if URL hash is #create (so other pages can trigger it)
-  useEffect(() => {
-    if (location.hash === "#create") {
-      setIsCreatePostOpen(true);
-    }
-  }, [location]);
 
   const handleUserProfile = () => {
     toast({
@@ -29,17 +22,12 @@ const Header = () => {
   };
 
   const handleHelp = () => {
-    toast({
-      title: "Help & Support",
-      description: "Opening help center...",
-    });
+    setIsHelpOpen(true);
   };
 
-  const handleNotifications = () => {
-    toast({
-      title: "Notifications",
-      description: "Notifications center coming soon",
-    });
+  const handleToggleTheme = () => {
+    const next = (resolvedTheme || theme) === "dark" ? "light" : "dark";
+    setTheme(next);
   };
 
   const handleMobileMenu = () => {
@@ -76,13 +64,8 @@ const Header = () => {
 
         {/* Buttons - Right side */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end">
-          <Button variant="therapeutic" size="sm" className="hidden sm:flex text-base" onClick={handleNewJournal}>
-            <PenTool className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="hidden lg:inline">Create Post</span>
-            <span className="lg:hidden">Post</span>
-          </Button>
-          <Button variant="gentle" size="sm" className="text-base" onClick={handleNotifications}>
-            <Bell className="h-4 w-4" />
+          <Button variant="gentle" size="sm" className="text-base" onClick={handleToggleTheme} aria-label="Toggle theme">
+            { (resolvedTheme || theme) === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" /> }
           </Button>
           <Button variant="gentle" size="sm" className="text-base" onClick={handleHelp}>
             <HelpCircle className="h-4 w-4" />
@@ -97,14 +80,11 @@ const Header = () => {
       </div>
     </header>
 
-    {isCreatePostOpen && (
-      <div className="w-full max-w-screen-xl mx-auto px-4 mt-4">
-        <RedditStylePostEditor 
-          isOpen={isCreatePostOpen} 
-          onClose={() => setIsCreatePostOpen(false)} 
-        />
-      </div>
-    )}
+    
+    <HelpModal 
+      isOpen={isHelpOpen} 
+      onClose={() => setIsHelpOpen(false)} 
+    />
     </>
   );
 };

@@ -9,9 +9,10 @@ import RedditStylePostEditor from "./RedditStylePostEditor";
 
 interface JournalFeedProps {
   onOpenCreatePost?: () => void;
+  disableAnimations?: boolean;
 }
 
-const JournalFeed = ({ onOpenCreatePost }: JournalFeedProps) => {
+const JournalFeed = ({ onOpenCreatePost, disableAnimations }: JournalFeedProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
@@ -107,16 +108,16 @@ const JournalFeed = ({ onOpenCreatePost }: JournalFeedProps) => {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h2 className="text-3xl md:text-4xl font-bold animate-fade-in">
+          <h2 className={`text-3xl md:text-4xl font-bold ${disableAnimations ? '' : 'animate-fade-in'}`}>
             Community Posts
           </h2>
-          <p className="text-lg text-muted-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <p className={`text-lg text-muted-foreground ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.2s' }}>
             Share your thoughts, find support, and connect with others. Post anonymously or with your username.
           </p>
         </div>
 
         {/* Search Bar */}
-        <div className="max-w-md mx-auto animate-fade-in" style={{ animationDelay: '0.4s' }}>
+        <div className={`max-w-md mx-auto ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.4s' }}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -139,7 +140,7 @@ const JournalFeed = ({ onOpenCreatePost }: JournalFeedProps) => {
         </div>
 
         {/* Create Post Button */}
-        <div className="flex justify-center animate-fade-in" style={{ animationDelay: '0.6s' }}>
+        <div className={`flex justify-center ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.6s' }}>
           <Button 
             variant="therapeutic" 
             size="lg" 
@@ -159,7 +160,7 @@ const JournalFeed = ({ onOpenCreatePost }: JournalFeedProps) => {
         )}
 
         {/* Feed Tabs */}
-        <Tabs defaultValue="trending" className="w-full animate-fade-in" style={{ animationDelay: '0.8s' }} onValueChange={setActiveTab}>
+        <Tabs defaultValue="trending" className={`w-full ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.8s' }} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50 backdrop-blur-sm">
             <TabsTrigger 
               value="trending" 
@@ -195,10 +196,10 @@ const JournalFeed = ({ onOpenCreatePost }: JournalFeedProps) => {
               posts.map((post, index) => (
                 <div 
                   key={post.id} 
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 0.1}s` }}
+                  className={disableAnimations ? '' : 'animate-fade-in'}
+                  style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                 >
-                  <JournalPost {...post} />
+                  <JournalPost {...post} disableAnimations={disableAnimations} />
                 </div>
               ))
             ) : searchTerm ? (
@@ -226,10 +227,10 @@ const JournalFeed = ({ onOpenCreatePost }: JournalFeedProps) => {
               posts.slice().reverse().map((post, index) => (
                 <div 
                   key={post.id} 
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 0.1}s` }}
+                  className={disableAnimations ? '' : 'animate-fade-in'}
+                  style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                 >
-                  <JournalPost {...post} />
+                  <JournalPost {...post} disableAnimations={disableAnimations} />
                 </div>
               ))
             ) : (
@@ -240,7 +241,7 @@ const JournalFeed = ({ onOpenCreatePost }: JournalFeedProps) => {
           </TabsContent>
 
           <TabsContent value="following" className="space-y-6">
-            <div className="text-center py-12 animate-fade-in">
+            <div className={`text-center py-12 ${disableAnimations ? '' : 'animate-fade-in'}`}>
               <Heart className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground mb-4">
                 Follow communities to see their posts here

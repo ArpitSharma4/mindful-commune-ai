@@ -3,16 +3,16 @@ import { PenTool, Users, Brain, Shield } from "lucide-react";
 import heroImage from "@/assets/hero-mindful.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { RedditStylePostEditor } from "@/features/journaling/components";
 
 const HeroSection = () => {
   const { toast } = useToast();
-  const [isVisible, setIsVisible] = useState(false);
   const [sparkleAnimation, setSparkleAnimation] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    setIsVisible(true);
     const sparkleTimer = setInterval(() => {
       setSparkleAnimation(true);
       setTimeout(() => setSparkleAnimation(false), 1000);
@@ -35,8 +35,7 @@ const HeroSection = () => {
       title: "Welcome to Our Community! 💙",
       description: "Connecting you with others on similar journeys.",
     });
-    // Navigate to communities page
-    window.location.href = '/communities';
+    navigate('/communities');
   };
 
   return (
@@ -58,7 +57,7 @@ const HeroSection = () => {
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 text-center">
-        <div className={`max-w-4xl mx-auto space-y-8 transition-all duration-1000 ${isVisible ? 'animate-fade-in opacity-100' : 'opacity-0 translate-y-8'}`}>
+        <div className={"max-w-4xl mx-auto space-y-8"}>
           {/* Main Heading */}
           <div className="space-y-4">
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
@@ -67,13 +66,13 @@ const HeroSection = () => {
                 EchoWell
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
               Share your thoughts anonymously, join supportive communities, and find your voice in a safe space. Post, vote, and connect with others who understand.
             </p>
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center w-full max-w-md sm:max-w-none mx-auto animate-fade-in" style={{ animationDelay: '0.6s' }}>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center w-full max-w-md sm:max-w-none mx-auto">
             <Button 
               variant="therapeutic" 
               size="lg" 
@@ -102,7 +101,7 @@ const HeroSection = () => {
 
           {/* Feature Icons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto">
-            <div className="flex flex-col items-center space-y-3 animate-fade-in group cursor-pointer" style={{ animationDelay: '0.9s' }}>
+            <div className="flex flex-col items-center space-y-3 group cursor-pointer">
               <div className="p-4 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 group-hover:shadow-lg">
                 <Brain className="h-8 w-8 text-primary transition-transform duration-200 group-hover:rotate-12" />
               </div>
@@ -112,7 +111,7 @@ const HeroSection = () => {
               </p>
             </div>
 
-            <div className="flex flex-col items-center space-y-3 animate-fade-in group cursor-pointer" style={{ animationDelay: '1.1s' }}>
+            <div className="flex flex-col items-center space-y-3 group cursor-pointer">
               <div className="p-4 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 group-hover:shadow-lg">
                 <Users className="h-8 w-8 text-primary transition-transform duration-200 group-hover:scale-110" />
               </div>
@@ -122,7 +121,7 @@ const HeroSection = () => {
               </p>
             </div>
 
-            <div className="flex flex-col items-center space-y-3 animate-fade-in group cursor-pointer" style={{ animationDelay: '1.3s' }}>
+            <div className="flex flex-col items-center space-y-3 group cursor-pointer">
               <div className="p-4 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 group-hover:shadow-lg">
                 <Shield className="h-8 w-8 text-primary transition-transform duration-200 group-hover:pulse" />
               </div>
