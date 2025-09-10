@@ -16,6 +16,7 @@ interface JournalPostProps {
   upvotes: number;
   comments: number;
   tags: string[];
+  community: string;
   imageUrl?: string;
 }
 
@@ -28,6 +29,7 @@ const JournalPost = ({
   upvotes: initialUpvotes, 
   comments, 
   tags,
+  community,
   imageUrl 
 }: JournalPostProps) => {
   const { toast } = useToast();
@@ -147,6 +149,7 @@ const JournalPost = ({
                   </span>
                   {isAnonymous && <Badge variant="secondary" className="ml-2 text-xs">Anonymous</Badge>}
                   <span className="ml-2">• {timeAgo}</span>
+                  <span className="ml-2">• {community}</span>
                 </div>
               </div>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleMoreOptions}>

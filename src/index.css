@@ -9,7 +9,8 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Therapeutic color palette for mental health app */
-    --background: 210 20% 98%;
+    /* Cream background */
+    --background: 45 100% 97%;
     --foreground: 215 25% 27%;
 
     --card: 0 0% 100%;
@@ -46,7 +47,7 @@ All colors MUST be HSL.
 
     /* Therapeutic gradients */
     --gradient-primary: linear-gradient(135deg, hsl(174 62% 47%), hsl(174 62% 67%));
-    --gradient-background: linear-gradient(180deg, hsl(210 20% 98%), hsl(174 20% 96%));
+    --gradient-background: linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 30% 98%));
     
     /* Therapeutic shadows */
@@ -152,6 +153,10 @@ All colors MUST be HSL.
   .animate-gentle-pulse {
     animation: gentlePulse 2s ease-in-out infinite;
   }
+  
+  .animate-slide-down {
+    animation: slideDown 0.4s ease-out;
+  }
 }
 
 @keyframes fadeIn {
@@ -167,4 +172,9 @@ All colors MUST be HSL.
 @keyframes gentlePulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.02); opacity: 0.9; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }

@@ -1,15 +1,42 @@
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
-import JournalFeed from "@/components/JournalFeed";
+import LeftSidebar from "@/components/LeftSidebar";
+import { Button } from "@/components/ui/button";
+import { Leaf } from "lucide-react";
+import { useState } from "react";
 
 const Index = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
     <div className="min-h-screen">
       <Header />
-      <main>
-        <HeroSection />
-        <div id="journal">
-          <JournalFeed />
+      <main className="w-full px-4 py-12">
+        {!isSidebarOpen && (
+          <div className="block">
+            {/* Vertical rail line split into two segments to avoid the leaf area */}
+            <div className="fixed left-[2.625rem] top-0 h-[calc(6rem-0.25rem)] w-px bg-border/70 z-40 pointer-events-none" />
+            <div className="fixed left-[2.625rem] bottom-0 top-[calc(6rem+2.25rem+0.25rem)] w-px bg-border/70 z-40 pointer-events-none" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="fixed left-6 top-24 z-60 h-9 w-9 rounded-full bg-background border shadow"
+              aria-label="Open sidebar"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Leaf className="h-4 w-4 text-primary" />
+            </Button>
+          </div>
+        )}
+        <div className={isSidebarOpen ? "grid grid-cols-1 md:grid-cols-[14rem_1fr] gap-6" : "grid grid-cols-1 gap-6"}>
+          {isSidebarOpen && (
+            <div className="sticky top-16 self-start">
+              <LeftSidebar onClose={() => setIsSidebarOpen(false)} />
+            </div>
+          )}
+          <div className="w-full max-w-screen-xl mx-auto">
+            <HeroSection />
+          </div>
         </div>
       </main>
     </div>

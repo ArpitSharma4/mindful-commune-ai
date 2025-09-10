@@ -1,13 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { PenTool, Users, Brain, Shield, Sparkles } from "lucide-react";
+import { PenTool, Users, Brain, Shield } from "lucide-react";
 import heroImage from "@/assets/hero-mindful.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import RedditStylePostEditor from "./RedditStylePostEditor";
 
 const HeroSection = () => {
   const { toast } = useToast();
   const [isVisible, setIsVisible] = useState(false);
   const [sparkleAnimation, setSparkleAnimation] = useState(false);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -20,12 +22,12 @@ const HeroSection = () => {
   }, []);
 
   const handleStartJournaling = () => {
-    toast({
-      title: "Welcome to Your Journey! 🌱",
-      description: "Let's create your first journal entry together.",
-    });
-    // Scroll to journal section
-    document.getElementById('journal')?.scrollIntoView({ behavior: 'smooth' });
+    // Navigate to home with #create so the header opens the editor and stays visible
+    if (window.location.pathname !== "/") {
+      window.location.href = "/#create";
+      return;
+    }
+    window.location.hash = "create";
   };
 
   const handleJoinCommunity = () => {
@@ -33,8 +35,8 @@ const HeroSection = () => {
       title: "Welcome to Our Community! 💙",
       description: "Connecting you with others on similar journeys.",
     });
-    // Scroll to community section
-    document.getElementById('community')?.scrollIntoView({ behavior: 'smooth' });
+    // Navigate to communities page
+    window.location.href = '/communities';
   };
 
   return (
@@ -52,33 +54,21 @@ const HeroSection = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/95"></div>
       </div>
 
-      {/* Floating Elements */}
-      <div className="absolute inset-0 z-5 pointer-events-none overflow-hidden">
-        <div className="absolute top-20 left-10 opacity-30 animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}>
-          <Sparkles className="h-4 w-4 text-primary" />
-        </div>
-        <div className="absolute top-40 right-20 opacity-20 animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }}>
-          <Sparkles className="h-6 w-6 text-secondary" />
-        </div>
-        <div className="absolute bottom-40 left-20 opacity-25 animate-bounce" style={{ animationDelay: '2s', animationDuration: '5s' }}>
-          <Sparkles className="h-5 w-5 text-accent" />
-        </div>
-      </div>
+
 
       {/* Content */}
-      <div className="relative z-10 container px-4 text-center">
+      <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 text-center">
         <div className={`max-w-4xl mx-auto space-y-8 transition-all duration-1000 ${isVisible ? 'animate-fade-in opacity-100' : 'opacity-0 translate-y-8'}`}>
           {/* Main Heading */}
           <div className="space-y-4">
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-              Your Safe Space for
+              Welcome to
               <span className={`bg-gradient-primary bg-clip-text text-transparent block transition-all duration-500 ${sparkleAnimation ? 'animate-pulse' : ''}`}>
-                Mental Wellness
-                <Sparkles className={`inline-block h-8 w-8 ml-2 text-primary transition-all duration-300 ${sparkleAnimation ? 'animate-spin text-yellow-400' : ''}`} />
+                EchoWell
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              Journal your thoughts, connect with a supportive community, and get AI-powered insights for your mental health journey.
+              Share your thoughts anonymously, join supportive communities, and find your voice in a safe space. Post, vote, and connect with others who understand.
             </p>
           </div>
 
@@ -91,7 +81,7 @@ const HeroSection = () => {
               onClick={handleStartJournaling}
             >
               <PenTool className="h-4 w-4 sm:h-5 sm:w-5 mr-2 transition-transform duration-200 group-hover:rotate-12" />
-              Start Journaling
+              Create Post
             </Button>
             <Button 
               variant="gentle" 
@@ -100,9 +90,15 @@ const HeroSection = () => {
               onClick={handleJoinCommunity}
             >
               <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 transition-transform duration-200 group-hover:scale-110" />
-              Join Community
+              Browse Communities
             </Button>
           </div>
+
+          {/* Reddit Style Post Editor */}
+          <RedditStylePostEditor 
+            isOpen={isCreatePostOpen} 
+            onClose={() => setIsCreatePostOpen(false)} 
+          />
 
           {/* Feature Icons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto">
@@ -110,9 +106,9 @@ const HeroSection = () => {
               <div className="p-4 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 group-hover:shadow-lg">
                 <Brain className="h-8 w-8 text-primary transition-transform duration-200 group-hover:rotate-12" />
               </div>
-              <h3 className="font-semibold transition-colors duration-200 group-hover:text-primary">AI Support</h3>
+              <h3 className="font-semibold transition-colors duration-200 group-hover:text-primary">Anonymous Posting</h3>
               <p className="text-sm text-muted-foreground text-center transition-colors duration-200 group-hover:text-foreground">
-                Get personalized insights and gentle guidance from our AI assistant
+                Share your thoughts safely with optional anonymous posting
               </p>
             </div>
 
@@ -120,9 +116,9 @@ const HeroSection = () => {
               <div className="p-4 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 group-hover:shadow-lg">
                 <Users className="h-8 w-8 text-primary transition-transform duration-200 group-hover:scale-110" />
               </div>
-              <h3 className="font-semibold transition-colors duration-200 group-hover:text-primary">Community</h3>
+              <h3 className="font-semibold transition-colors duration-200 group-hover:text-primary">Voting System</h3>
               <p className="text-sm text-muted-foreground text-center transition-colors duration-200 group-hover:text-foreground">
-                Connect with others who understand your journey in a safe space
+                Upvote and downvote posts to help quality content rise to the top
               </p>
             </div>
 
@@ -130,9 +126,9 @@ const HeroSection = () => {
               <div className="p-4 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 group-hover:shadow-lg">
                 <Shield className="h-8 w-8 text-primary transition-transform duration-200 group-hover:pulse" />
               </div>
-              <h3 className="font-semibold transition-colors duration-200 group-hover:text-primary">Privacy First</h3>
+              <h3 className="font-semibold transition-colors duration-200 group-hover:text-primary">Communities</h3>
               <p className="text-sm text-muted-foreground text-center transition-colors duration-200 group-hover:text-foreground">
-                Your thoughts are safe with anonymous posting and secure journaling
+                Join topic-based communities and find your niche
               </p>
             </div>
           </div>

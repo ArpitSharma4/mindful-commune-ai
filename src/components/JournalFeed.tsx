@@ -2,22 +2,29 @@ import JournalPost from "./JournalPost";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { TrendingUp, Clock, Heart, Search, Filter, Sparkles } from "lucide-react";
+import { TrendingUp, Clock, Heart, Search, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import RedditStylePostEditor from "./RedditStylePostEditor";
 
-const JournalFeed = () => {
+interface JournalFeedProps {
+  onOpenCreatePost?: () => void;
+}
+
+const JournalFeed = ({ onOpenCreatePost }: JournalFeedProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
   const [isLoading, setIsLoading] = useState(false);
   const [filteredPosts, setFilteredPosts] = useState([]);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
 
   const handleShareStory = () => {
-    toast({
-      title: "Share Your Story 📝",
-      description: "Opening the journal editor to create your post...",
-    });
+    if (onOpenCreatePost) {
+      onOpenCreatePost();
+      return;
+    }
+    setIsCreatePostOpen(true);
   };
 
   const handleSearch = (value: string) => {
@@ -27,7 +34,7 @@ const JournalFeed = () => {
     setTimeout(() => setIsLoading(false), 300);
   };
 
-  // Mock data for journal posts with dynamic content
+  // Mock data for community posts with dynamic content
   const allPosts = [
     {
       id: "1",
@@ -38,7 +45,8 @@ const JournalFeed = () => {
       timeAgo: "2 hours ago",
       upvotes: 24,
       comments: 8,
-      tags: ["mindfulness", "gratitude", "peace"]
+      tags: ["mindfulness", "gratitude", "peace"],
+      community: "r/Mindfulness"
     },
     {
       id: "2",
@@ -49,7 +57,8 @@ const JournalFeed = () => {
       timeAgo: "4 hours ago",
       upvotes: 67,
       comments: 23,
-      tags: ["perfectionism", "therapy", "self-compassion"]
+      tags: ["perfectionism", "therapy", "self-compassion"],
+      community: "r/Therapy"
     },
     {
       id: "3",
@@ -60,7 +69,8 @@ const JournalFeed = () => {
       timeAgo: "6 hours ago",
       upvotes: 156,
       comments: 42,
-      tags: ["depression", "recovery", "self-care", "progress"]
+      tags: ["depression", "recovery", "self-care", "progress"],
+      community: "r/DepressionSupport"
     },
     {
       id: "4",
@@ -71,7 +81,8 @@ const JournalFeed = () => {
       timeAgo: "8 hours ago",
       upvotes: 89,
       comments: 31,
-      tags: ["boundaries", "relationships", "self-respect"]
+      tags: ["boundaries", "relationships", "self-respect"],
+      community: "r/Relationships"
     }
   ];
 
@@ -92,16 +103,15 @@ const JournalFeed = () => {
   }, [searchTerm, activeTab]);
 
   return (
-    <section className="container px-4 py-12">
+    <section className="space-y-8">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
           <h2 className="text-3xl md:text-4xl font-bold animate-fade-in">
-            Community Journal
-            <Sparkles className="inline-block h-8 w-8 ml-2 text-primary animate-pulse" />
+            Community Posts
           </h2>
           <p className="text-lg text-muted-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            Share your story, find support, and connect with others on their mental health journey
+            Share your thoughts, find support, and connect with others. Post anonymously or with your username.
           </p>
         </div>
 
@@ -110,7 +120,7 @@ const JournalFeed = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search stories, topics, or tags..."
+              placeholder="Search posts, topics, or communities..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 pr-10 bg-muted/50 backdrop-blur-sm border-muted focus:border-primary transition-all duration-300"
@@ -136,9 +146,17 @@ const JournalFeed = () => {
             className="shadow-therapeutic w-full sm:w-auto max-w-xs sm:max-w-none transition-all duration-300 hover:scale-105 hover:shadow-lg"
             onClick={handleShareStory}
           >
-            Share Your Story
+            Create Post
           </Button>
         </div>
+
+        {/* Reddit Style Post Editor (fallback when standalone) */}
+        {!onOpenCreatePost && (
+          <RedditStylePostEditor 
+            isOpen={isCreatePostOpen} 
+            onClose={() => setIsCreatePostOpen(false)} 
+          />
+        )}
 
         {/* Feed Tabs */}
         <Tabs defaultValue="trending" className="w-full animate-fade-in" style={{ animationDelay: '0.8s' }} onValueChange={setActiveTab}>
@@ -185,14 +203,14 @@ const JournalFeed = () => {
               ))
             ) : searchTerm ? (
               <div className="text-center py-12 animate-fade-in">
-                <p className="text-muted-foreground">No stories found matching "{searchTerm}"</p>
+                <p className="text-muted-foreground">No posts found matching "{searchTerm}"</p>
                 <Button variant="ghost" onClick={() => handleSearch("")} className="mt-2">
                   Clear search
                 </Button>
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No trending stories right now</p>
+                <p className="text-muted-foreground">No trending posts right now</p>
               </div>
             )}
           </TabsContent>
@@ -216,7 +234,7 @@ const JournalFeed = () => {
               ))
             ) : (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No recent stories available</p>
+                <p className="text-muted-foreground">No recent posts available</p>
               </div>
             )}
           </TabsContent>
@@ -225,10 +243,10 @@ const JournalFeed = () => {
             <div className="text-center py-12 animate-fade-in">
               <Heart className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground mb-4">
-                Follow other community members to see their posts here
+                Follow communities to see their posts here
               </p>
               <Button variant="gentle" onClick={() => setActiveTab("trending")}>
-                Browse trending stories
+                Browse trending posts
               </Button>
             </div>
           </TabsContent>
