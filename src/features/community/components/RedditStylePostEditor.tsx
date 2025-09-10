@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { X, PenTool, Bold, Italic, Strikethrough, Superscript, Subscript, Link, Image, Video, List, ListOrdered, Code, Save } from "lucide-react";
+import { X, PenTool, Bold, Italic, Strikethrough, Superscript, Subscript, Link, Image, Video, List, ListOrdered, Code, Save, User, UserX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface RedditStylePostEditorProps {
@@ -30,7 +30,8 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
     tags: "",
     link: "",
     imageUrl: "",
-    videoUrl: ""
+    videoUrl: "",
+    isAnonymous: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasContent, setHasContent] = useState(false);
@@ -188,7 +189,8 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
         tags: "",
         link: "",
         imageUrl: "",
-        videoUrl: ""
+        videoUrl: "",
+        isAnonymous: false
       });
       
       onClose();
@@ -211,7 +213,8 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
       tags: "",
       link: "",
       imageUrl: "",
-      videoUrl: ""
+      videoUrl: "",
+      isAnonymous: false
     });
     onClose();
   };
@@ -242,6 +245,41 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Posting Preference */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">
+                Post as
+              </Label>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant={!formData.isAnonymous ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFormData(prev => ({ ...prev, isAnonymous: false }))}
+                  className="flex items-center gap-2 h-10 px-4 rounded-full transition-all duration-200"
+                >
+                  <User className="h-4 w-4" />
+                  Public
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.isAnonymous ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFormData(prev => ({ ...prev, isAnonymous: true }))}
+                  className="flex items-center gap-2 h-10 px-4 rounded-full transition-all duration-200"
+                >
+                  <UserX className="h-4 w-4" />
+                  Anonymous
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {formData.isAnonymous 
+                  ? "Your username will not be shown. Post will appear as 'Anonymous'" 
+                  : "Your username will be visible to other community members"
+                }
+              </p>
+            </div>
+
             {/* Community Selection */}
             <div className="space-y-2">
               <Label htmlFor="community" className="text-sm font-medium">
