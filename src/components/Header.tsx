@@ -6,19 +6,18 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import HelpModal from "./HelpModal";
+import UserProfileDropdown from "./UserProfileDropdown";
 
 const Header = () => {
   const { toast } = useToast();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   const { theme, setTheme, resolvedTheme } = useTheme();
 
 
 
   const handleUserProfile = () => {
-    toast({
-      title: "User Profile",
-      description: "Opening your profile...",
-    });
+    setIsUserProfileOpen(true);
   };
 
   const handleHelp = () => {
@@ -39,7 +38,7 @@ const Header = () => {
 
   return (
     <>
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 relative">
       <div className="w-full flex h-16 items-center px-2 border-b-0">
         {/* Logo - Left side */}
         <div className="flex items-center gap-2 flex-1 ml-0">
@@ -84,6 +83,11 @@ const Header = () => {
     <HelpModal 
       isOpen={isHelpOpen} 
       onClose={() => setIsHelpOpen(false)} 
+    />
+    
+    <UserProfileDropdown 
+      isOpen={isUserProfileOpen} 
+      onClose={() => setIsUserProfileOpen(false)} 
     />
     </>
   );

@@ -4,7 +4,7 @@ import heroImage from "@/assets/hero-mindful.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { RedditStylePostEditor } from "@/features/journaling/components";
+import { RedditStylePostEditor } from "@/features/community/components";
 
 const HeroSection = () => {
   const { toast } = useToast();

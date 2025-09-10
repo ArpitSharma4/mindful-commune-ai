@@ -1,10 +1,11 @@
 import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
-import { JournalFeed, RedditStylePostEditor } from "@/features/journaling/components";
-import { CommunitySidebar } from "@/features/community/components";
+import { PostFeatures, RedditStylePostEditor } from "@/features/community/components";
+
 import { Button } from "@/components/ui/button";
 import { Leaf } from "lucide-react";
 import { useState } from "react";
+import JournalFeed from "@/features/community/components/CommunityMain";
 
 const Communities = () => {
   const [isComposeOpen, setIsComposeOpen] = useState(false);

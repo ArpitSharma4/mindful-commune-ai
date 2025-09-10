@@ -1,4 +1,4 @@
-import JournalPost from "./JournalPost";
+import CommunityPost from "./PostFeatures";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -7,12 +7,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import RedditStylePostEditor from "./RedditStylePostEditor";
 
-interface JournalFeedProps {
+interface CommunityMainProps {
   onOpenCreatePost?: () => void;
   disableAnimations?: boolean;
 }
 
-const JournalFeed = ({ onOpenCreatePost, disableAnimations }: JournalFeedProps) => {
+const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
@@ -199,7 +199,7 @@ const JournalFeed = ({ onOpenCreatePost, disableAnimations }: JournalFeedProps) 
                   className={disableAnimations ? '' : 'animate-fade-in'}
                   style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                 >
-                  <JournalPost {...post} disableAnimations={disableAnimations} />
+                    <CommunityPost {...post} disableAnimations={disableAnimations} />
                 </div>
               ))
             ) : searchTerm ? (
@@ -230,7 +230,7 @@ const JournalFeed = ({ onOpenCreatePost, disableAnimations }: JournalFeedProps) 
                   className={disableAnimations ? '' : 'animate-fade-in'}
                   style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                 >
-                  <JournalPost {...post} disableAnimations={disableAnimations} />
+                  <CommunityPost {...post} disableAnimations={disableAnimations} />
                 </div>
               ))
             ) : (
@@ -257,4 +257,4 @@ const JournalFeed = ({ onOpenCreatePost, disableAnimations }: JournalFeedProps) 
   );
 };
 
-export default JournalFeed;
+export default CommunityMain;
