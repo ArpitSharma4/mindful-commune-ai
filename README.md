@@ -1,5 +1,5 @@
 # Echo Well - Reddit-style Community Platform
-
+ 
 ## Project Overview
 
 **Echo Well** is a Reddit-style community platform designed for mental wellness and support. Users can share their thoughts anonymously or with their username, join topic-based communities, and engage with others through voting and commenting.
