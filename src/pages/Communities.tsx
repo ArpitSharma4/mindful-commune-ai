@@ -1,8 +1,7 @@
 import Header from "@/components/Header";
-import JournalFeed from "@/components/JournalFeed";
-import CommunitySidebar from "@/components/CommunitySidebar";
 import LeftSidebar from "@/components/LeftSidebar";
-import RedditStylePostEditor from "@/components/RedditStylePostEditor";
+import { JournalFeed, RedditStylePostEditor } from "@/features/journaling/components";
+import { CommunitySidebar } from "@/features/community/components";
 import { useState } from "react";
 
 const Communities = () => {

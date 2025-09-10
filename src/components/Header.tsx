@@ -4,7 +4,7 @@ import { Heart, Menu, User, PenTool, HelpCircle, Bell, Search } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import RedditStylePostEditor from "./RedditStylePostEditor";
+import { RedditStylePostEditor } from "@/features/journaling/components";
 
 const Header = () => {
   const { toast } = useToast();

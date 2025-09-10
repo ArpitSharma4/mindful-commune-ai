@@ -3,7 +3,7 @@ import { PenTool, Users, Brain, Shield } from "lucide-react";
 import heroImage from "@/assets/hero-mindful.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import RedditStylePostEditor from "./RedditStylePostEditor";
+import { RedditStylePostEditor } from "@/features/journaling/components";
 
 const HeroSection = () => {
   const { toast } = useToast();
