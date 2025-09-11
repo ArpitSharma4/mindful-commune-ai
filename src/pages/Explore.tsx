@@ -16,6 +16,7 @@ const Explore = () => {
   const [isCreateCommunityOpen, setIsCreateCommunityOpen] = useState(false);
   const [communities, setCommunities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [joinedCommunities, setJoinedCommunities] = useState(new Set());
 
   // Fetch communities from backend
   const fetchCommunities = async () => {
@@ -79,9 +80,11 @@ const Explore = () => {
       const data = await response.json();
 
       if (response.ok) {
+        setJoinedCommunities(prev => new Set(prev).add(communityId));
         toast({
           title: "Success! ",
           description: "You've successfully joined the community!",
+          autoDismiss: 5000,
         });
       } else {
         toast({
@@ -216,11 +219,11 @@ const Explore = () => {
                               )}
                             </div>
                             <Button
-                              variant="default"
+                              variant={joinedCommunities.has(community.community_id) ? "default" : "primary"}
                               size="sm"
                               onClick={() => handleJoinCommunity(community.community_id)}
                             >
-                              Join
+                              {joinedCommunities.has(community.community_id) ? "Joined" : "Join"}
                             </Button>
                           </div>
                         </CardHeader>
