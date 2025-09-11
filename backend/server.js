@@ -35,7 +35,7 @@ app.use(express.json());
 app.use('/api/users', userRoutes);
 
 // Any request starting with '/api/communities' will be handled by our communityRoutes file.
-app.use('/api/communities', communityRoutes);
+app.use('/api/community', communityRoutes);
 
 // Global error handling middleware
 app.use((err, req, res, next) => {

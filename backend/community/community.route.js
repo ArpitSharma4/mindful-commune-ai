@@ -1,17 +1,26 @@
 const { Router } = require('express');
-const { createCommunity } = require('./community.controller');
-const authMiddleware = require('../middleware/auth'); // <-- Import our security guard!
+
+// Import all three controller functions
+const {
+  createCommunity,
+  getAllCommunities,
+  joinCommunity,
+} = require('./community.controller');
+const authMiddleware = require('../middleware/auth');
 
 const router = Router();
 
-// To create a community, the user MUST be authenticated.
-// The authMiddleware will run first. If the token is valid, it calls next()
-// which then runs the createCommunity function.
+// --- PUBLIC ROUTE ---
+// GET /api/communities -> Lists all communities
+router.get('/', getAllCommunities);
+
+// --- PROTECTED ROUTES ---
+// POST /api/communities/createCommunity -> Creates a new community
 router.post('/createCommunity', authMiddleware, createCommunity);
 
-// We can add other public or protected community routes here later.
-// For example, getting all communities might not require authentication.
-// router.get('/', getAllCommunities);
+// POST /api/communities/:communityId/join -> Joins a community
+// This is a dynamic route where ':communityId' is a URL parameter.
+router.post('/:communityId/join', authMiddleware, joinCommunity);
 
 module.exports = router;
 

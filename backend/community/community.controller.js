@@ -41,6 +41,59 @@ const createCommunity = async (req, res) => {
   }
 };
 
+const getAllCommunities = async (req, res) => {
+  try {
+    // 1. Query the database to get all communities.
+    // We join with the users table to also fetch the creator's username.
+    const allCommunitiesQuery = `
+      SELECT c.*, u.username AS creator_username
+      FROM communities c
+      JOIN users u ON c.creator_id = u.user_id
+      ORDER BY c.created_at DESC;
+    `;
+    const allCommunities = await pool.query(allCommunitiesQuery);
+
+    // 2. Send the list of communities as a JSON response.
+    res.status(200).json(allCommunities.rows);
+
+  } catch (error) {
+    console.error('Error fetching communities:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+const joinCommunity = async (req, res) => {
+  try {
+    // 1. Get the communityId from the URL parameters.
+    const { communityId } = req.params;
+    // 2. Get the userId from the authenticated user (provided by authMiddleware).
+    const userId = req.user.userId;
+
+    // 3. Insert the new membership record into the join table.
+    const joinQuery = `
+      INSERT INTO community_members (user_id, community_id)
+      VALUES ($1, $2)
+      RETURNING *;
+    `;
+    await pool.query(joinQuery, [userId, communityId]);
+
+    // 4. Send a success response.
+    res.status(200).json({ message: 'Successfully joined the community!' });
+
+  } catch (error) {
+    console.error('Error joining community:', error);
+    // This specific error code means a unique constraint was violated.
+    if (error.code === '23505') {
+      return res.status(409).json({ error: 'You are already a member of this community.' });
+    }
+    // For other errors, send a generic server error.
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   createCommunity,
+  getAllCommunities,
+  joinCommunity,
 };
+
