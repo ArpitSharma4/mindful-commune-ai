@@ -10,6 +10,7 @@ import RedditStylePostEditor from "./RedditStylePostEditor";
 interface CommunityMainProps {
   onOpenCreatePost?: () => void;
   disableAnimations?: boolean;
+  communityId?: string | number;
 }
 
 interface Post {
@@ -34,7 +35,7 @@ interface Post {
   community?: string;
 }
 
-const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainProps) => {
+const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }: CommunityMainProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
@@ -47,9 +48,8 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      // Use the new posts API endpoint - we'll fetch from a default community for now
-      // In a real app, this would be dynamic based on selected community
-      const response = await fetch('/api/posts/in/1'); // Using community ID 1 as default
+      // Use the dynamic communityId prop
+      const response = await fetch(`/api/posts/in/${communityId}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -93,10 +93,10 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  // Load posts on component mount
+  // Load posts on component mount and when communityId changes
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [communityId]);
 
   const handleShareStory = () => {
     if (onOpenCreatePost) {

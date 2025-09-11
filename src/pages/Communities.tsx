@@ -4,12 +4,40 @@ import { PostFeatures, RedditStylePostEditor } from "@/features/community/compon
 
 import { Button } from "@/components/ui/button";
 import { Leaf } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import JournalFeed from "@/features/community/components/CommunityMain";
 
 const Communities = () => {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [communityId, setCommunityId] = useState<number>(1);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Fetch the first available community ID on component mount
+  useEffect(() => {
+    const fetchCommunities = async () => {
+      try {
+        const response = await fetch('/api/community/getAllCommunities');
+        if (response.ok) {
+          const communities = await response.json();
+          if (communities.length > 0) {
+            setCommunityId(communities[0].community_id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching communities:', error);
+        // Keep default community ID 1 if fetch fails
+      }
+    };
+
+    fetchCommunities();
+  }, []);
+
+  const handlePostCreated = () => {
+    setIsComposeOpen(false);
+    // Trigger refresh of posts in CommunityMain
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   return (
     <div className="min-h-screen">
@@ -46,9 +74,16 @@ const Communities = () => {
                   <RedditStylePostEditor
                     isOpen={true}
                     onClose={() => setIsComposeOpen(false)}
+                    onPostCreated={handlePostCreated}
+                    communityId={communityId}
                   />
                 ) : (
-                  <JournalFeed onOpenCreatePost={() => setIsComposeOpen(true)} disableAnimations />
+                  <JournalFeed 
+                    onOpenCreatePost={() => setIsComposeOpen(true)} 
+                    disableAnimations 
+                    communityId={communityId}
+                    key={refreshTrigger}
+                  />
                 )}
             </div>
           </div>

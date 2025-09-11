@@ -10,9 +10,10 @@ interface RedditStylePostEditorProps {
   isOpen: boolean;
   onClose: () => void;
   onPostCreated?: () => void;
+  communityId?: string | number;
 }
 
-const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePostEditorProps) => {
+const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated, communityId }: RedditStylePostEditorProps) => {
   const { toast } = useToast();
   const titleInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,11 +37,19 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
   const fetchCommunities = async () => {
     try {
       setIsLoadingCommunities(true);
-      const response = await fetch('/api/community/');
+      const response = await fetch('/api/community/getAllCommunities');
       
       if (response.ok) {
         const data = await response.json();
         setCommunities(data);
+        
+        // If communityId prop is provided, pre-select that community
+        if (communityId && data.length > 0) {
+          const targetCommunity = data.find((c: any) => c.community_id == communityId);
+          if (targetCommunity) {
+            setFormData(prev => ({ ...prev, community: targetCommunity.slug }));
+          }
+        }
       } else {
         console.error('Failed to fetch communities');
       }
