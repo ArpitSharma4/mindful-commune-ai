@@ -7,11 +7,13 @@ import { Users, MessageSquare, Heart, TrendingUp, Search, Plus, Leaf } from "luc
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import CreateCommunityModal from "@/components/CreateCommunityModal";
 
 const Explore = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isCreateCommunityOpen, setIsCreateCommunityOpen] = useState(false);
 
   // Mock communities data
   const communities = [
@@ -109,10 +111,17 @@ const Explore = () => {
   };
 
   const handleCreateCommunity = () => {
+    setIsCreateCommunityOpen(true);
+  };
+
+  const handleCommunityCreated = (community: any) => {
+    // Handle successful community creation
+    console.log('Community created:', community);
     toast({
-      title: "Create Community",
-      description: "Opening community creator...",
+      title: "Community Created! ",
+      description: `${community.name} has been successfully created.`,
     });
+    // You can add logic here to refresh community list or navigate to new community
   };
 
   return (
@@ -248,6 +257,12 @@ const Explore = () => {
           </div>
         </div>
       </main>
+
+      <CreateCommunityModal
+        isOpen={isCreateCommunityOpen}
+        onClose={() => setIsCreateCommunityOpen(false)}
+        onCommunityCreated={handleCommunityCreated}
+      />
     </div>
   );
 };

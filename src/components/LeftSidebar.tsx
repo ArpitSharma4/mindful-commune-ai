@@ -7,6 +7,7 @@ type LeftSidebarProps = {
 
 const LeftSidebar = ({ onClose }: LeftSidebarProps) => {
   const location = useLocation();
+
   return (
     <aside className="hidden md:flex flex-col w-56 pt-0 pr-4 border-r">
       <button onClick={onClose} className="self-start mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
@@ -23,24 +24,24 @@ const LeftSidebar = ({ onClose }: LeftSidebarProps) => {
           <Home className="h-4 w-4" />
           Home
         </Link>
-         <Link
-           to="/communities"
-           className={`inline-flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-             location.pathname === "/communities" ? "bg-primary/10 text-primary" : "hover:bg-muted"
-           }`}
-         >
-           <Users className="h-4 w-4" />
-           Communities
-         </Link>
-         <Link
-           to="/explore"
-           className={`inline-flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-             location.pathname === "/explore" ? "bg-primary/10 text-primary" : "hover:bg-muted"
-           }`}
-         >
-           <Compass className="h-4 w-4" />
-           Explore
-         </Link>
+        <Link
+          to="/communities"
+          className={`inline-flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            location.pathname === "/communities" ? "bg-primary/10 text-primary" : "hover:bg-muted"
+          }`}
+        >
+          <Users className="h-4 w-4" />
+          Communities
+        </Link>
+        <Link
+          to="/explore"
+          className={`inline-flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            location.pathname === "/explore" ? "bg-primary/10 text-primary" : "hover:bg-muted"
+          }`}
+        >
+          <Compass className="h-4 w-4" />
+          Explore
+        </Link>
       </nav>
     </aside>
   );
