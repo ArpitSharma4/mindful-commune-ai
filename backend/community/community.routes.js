@@ -1,10 +1,8 @@
 const express = require("express");
 const router = express.Router();
+const { createPost, getPosts } = require("./community.controller");
 
-// Import controller
-const { getFeature1Data } = require("./community.controller");
-
-// Define API endpoints
-router.get("/", getFeature1Data);
+router.post("/", createPost); // Create post
+router.get("/", getPosts);    // Fetch posts
 
 module.exports = router;
