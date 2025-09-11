@@ -1,23 +1,52 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, Menu, User, HelpCircle, Search, Moon, Sun } from "lucide-react";
+import { Heart, Menu, User, HelpCircle, Search, Moon, Sun, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import HelpModal from "./HelpModal";
 import UserProfileDropdown from "./UserProfileDropdown";
+import LoginModal from "./LoginModal";
 
 const Header = () => {
   const { toast } = useToast();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { theme, setTheme, resolvedTheme } = useTheme();
 
+  // Check authentication status on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const userData = localStorage.getItem('userData');
+    setIsLoggedIn(!!(token && userData));
+  }, []);
 
+  // Listen for storage changes to update auth state across tabs
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const token = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('userData');
+      setIsLoggedIn(!!(token && userData));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const handleUserProfile = () => {
     setIsUserProfileOpen(true);
+  };
+
+  const handleLogin = () => {
+    setIsLoginModalOpen(true);
+  };
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    setIsLoginModalOpen(false);
   };
 
   const handleHelp = () => {
@@ -69,9 +98,16 @@ const Header = () => {
           <Button variant="gentle" size="sm" className="text-base" onClick={handleHelp}>
             <HelpCircle className="h-4 w-4" />
           </Button>
-          <Button variant="gentle" size="sm" className="text-base" onClick={handleUserProfile}>
-            <User className="h-4 w-4" />
-          </Button>
+          {isLoggedIn ? (
+            <Button variant="gentle" size="sm" className="text-base" onClick={handleUserProfile}>
+              <User className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button variant="therapeutic" size="sm" className="text-base" onClick={handleLogin}>
+              <LogIn className="h-4 w-4 mr-1" />
+              Login
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="md:hidden" onClick={handleMobileMenu}>
             <Menu className="h-4 w-4" />
           </Button>
@@ -88,6 +124,12 @@ const Header = () => {
     <UserProfileDropdown 
       isOpen={isUserProfileOpen} 
       onClose={() => setIsUserProfileOpen(false)} 
+    />
+
+    <LoginModal 
+      isOpen={isLoginModalOpen} 
+      onClose={() => setIsLoginModalOpen(false)}
+      onLoginSuccess={handleLoginSuccess}
     />
     </>
   );

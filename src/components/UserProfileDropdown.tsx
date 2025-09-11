@@ -155,20 +155,11 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Drafts")}
-            >
-              <FileText className="h-4 w-4" />
-              <span>Drafts</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Achievements")}
+              onClick={() => handleMenuItem("Streaks")}
             >
               <Trophy className="h-4 w-4" />
               <div className="flex-1 text-left">
-                <span>Achievements</span>
+                <span>Streaks</span>
                 <div className="text-xs text-muted-foreground">5 unlocked</div>
               </div>
             </Button>

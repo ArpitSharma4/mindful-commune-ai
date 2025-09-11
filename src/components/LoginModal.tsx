@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,6 +21,27 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
     confirmPassword: "",
     name: ""
   });
+
+  // Password validation rules
+  const passwordRules = {
+    minLength: { test: (pwd: string) => pwd.length >= 8, message: "At least 8 characters" },
+    hasUppercase: { test: (pwd: string) => /[A-Z]/.test(pwd), message: "One uppercase letter" },
+    hasLowercase: { test: (pwd: string) => /[a-z]/.test(pwd), message: "One lowercase letter" },
+    hasNumber: { test: (pwd: string) => /\d/.test(pwd), message: "One number" },
+    hasSpecial: { test: (pwd: string) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd), message: "One special character" }
+  };
+
+  const validatePassword = (password: string) => {
+    return Object.entries(passwordRules).map(([key, rule]) => ({
+      key,
+      valid: rule.test(password),
+      message: rule.message
+    }));
+  };
+
+  const isPasswordValid = (password: string) => {
+    return Object.values(passwordRules).every(rule => rule.test(password));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +95,15 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
       toast({
         title: "Password Mismatch",
         description: "Passwords do not match. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!isPasswordValid(formData.password)) {
+      toast({
+        title: "Password Requirements Not Met",
+        description: "Please ensure your password meets all the requirements.",
         variant: "destructive"
       });
       return;
@@ -275,6 +305,27 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </div>
+        
+        {/* Password Requirements */}
+        {formData.password && (
+          <div className="mt-2 p-3 bg-muted/50 rounded-md">
+            <p className="text-sm font-medium mb-2">Password Requirements:</p>
+            <div className="space-y-1">
+              {validatePassword(formData.password).map(({ key, valid, message }) => (
+                <div key={key} className="flex items-center gap-2 text-sm">
+                  {valid ? (
+                    <Check className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <AlertCircle className="h-3 w-3 text-muted-foreground" />
+                  )}
+                  <span className={valid ? "text-green-600" : "text-muted-foreground"}>
+                    {message}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -291,9 +342,20 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
             required
           />
         </div>
+        {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+          <p className="text-sm text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Passwords do not match
+          </p>
+        )}
       </div>
 
-      <Button type="submit" className="w-full" variant="therapeutic">
+      <Button 
+        type="submit" 
+        className="w-full" 
+        variant="therapeutic"
+        disabled={!isPasswordValid(formData.password) || formData.password !== formData.confirmPassword}
+      >
         Create Account
       </Button>
 

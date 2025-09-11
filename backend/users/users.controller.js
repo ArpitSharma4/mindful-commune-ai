@@ -4,14 +4,51 @@ const pool = require('../db'); // The database connection pool
 const bcrypt = require('bcrypt'); // For hashing passwords
 const jwt = require('jsonwebtoken');
 
+// Password validation function
+const validatePassword = (password) => {
+  const errors = [];
+  
+  if (password.length < 8) {
+    errors.push("Password must be at least 8 characters long");
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    errors.push("Password must contain at least one uppercase letter");
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    errors.push("Password must contain at least one lowercase letter");
+  }
+  
+  if (!/\d/.test(password)) {
+    errors.push("Password must contain at least one number");
+  }
+  
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    errors.push("Password must contain at least one special character");
+  }
+  
+  return errors;
+};
+
 //Create a new user in the database
 const createUser = async (req, res) => {
   try {
     console.log('Received request body:', req.body)
     const { username, email, password } = req.body;
 
+    // Validate required fields
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email, and password are required.' });
+    }
+
+    // Validate password strength
+    const passwordErrors = validatePassword(password);
+    if (passwordErrors.length > 0) {
+      return res.status(400).json({
+        error: 'Password does not meet requirements',
+        errors: passwordErrors
+      });
     }
 
     const saltRounds = 10;
@@ -104,4 +141,3 @@ module.exports = {
   createUser,
   loginUser,
 };
-
