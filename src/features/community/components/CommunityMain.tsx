@@ -124,7 +124,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
               placeholder="Search posts, topics, or communities..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10 pr-10 bg-muted/50 backdrop-blur-sm border-muted focus:border-primary transition-all duration-300"
+              className="pl-10 pr-10 bg-muted/50 backdrop-blur-sm border-border/60 focus:border-primary transition-all duration-300"
             />
             {searchTerm && (
               <Button
@@ -161,7 +161,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
 
         {/* Feed Tabs */}
         <Tabs defaultValue="trending" className={`w-full ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.8s' }} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 backdrop-blur-sm">
             <TabsTrigger 
               value="trending" 
               className="flex items-center gap-2 transition-all duration-200 hover:scale-105"
@@ -175,13 +175,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
             >
               <Clock className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" />
               Recent
-            </TabsTrigger>
-            <TabsTrigger 
-              value="following" 
-              className="flex items-center gap-2 transition-all duration-200 hover:scale-105"
-            >
-              <Heart className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-              Following
             </TabsTrigger>
           </TabsList>
 
@@ -238,18 +231,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
                 <p className="text-muted-foreground">No recent posts available</p>
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="following" className="space-y-6">
-            <div className={`text-center py-12 ${disableAnimations ? '' : 'animate-fade-in'}`}>
-              <Heart className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground mb-4">
-                Follow communities to see their posts here
-              </p>
-              <Button variant="gentle" onClick={() => setActiveTab("trending")}>
-                Browse trending posts
-              </Button>
-            </div>
           </TabsContent>
         </Tabs>
       </div>

@@ -1,15 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { PenTool, Users, Brain, Shield } from "lucide-react";
-import heroImage from "@/assets/hero-mindful.jpg";
+import { PenTool, Users, Brain, Shield, BookOpen, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { RedditStylePostEditor } from "@/features/community/components";
 
 const HeroSection = () => {
   const { toast } = useToast();
   const [sparkleAnimation, setSparkleAnimation] = useState(false);
-  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,39 +19,31 @@ const HeroSection = () => {
   }, []);
 
   const handleStartJournaling = () => {
-    // Navigate to home with #create so the header opens the editor and stays visible
-    if (window.location.pathname !== "/") {
-      window.location.href = "/#create";
-      return;
-    }
-    window.location.hash = "create";
+    toast({
+      title: "Journaling Feature ",
+      description: "Opening your personal journaling space...",
+    });
+    // TODO: Navigate to journaling page when implemented
+  };
+
+  const handleAIChatbot = () => {
+    toast({
+      title: "AI Chatbot ",
+      description: "Starting conversation with your AI companion...",
+    });
+    // TODO: Navigate to chatbot page when implemented
   };
 
   const handleJoinCommunity = () => {
     toast({
-      title: "Welcome to Our Community! 💙",
+      title: "Welcome to Our Community! ",
       description: "Connecting you with others on similar journeys.",
     });
     navigate('/communities');
   };
 
   return (
-    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `url(${heroImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/95"></div>
-      </div>
-
-
-
+    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
       {/* Content */}
       <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 text-center">
         <div className={"max-w-4xl mx-auto space-y-8"}>
@@ -79,25 +68,31 @@ const HeroSection = () => {
               className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto transition-all duration-300 hover:scale-105 hover:shadow-therapeutic group"
               onClick={handleStartJournaling}
             >
-              <PenTool className="h-4 w-4 sm:h-5 sm:w-5 mr-2 transition-transform duration-200 group-hover:rotate-12" />
-              Create Post
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 mr-2 transition-transform duration-200 group-hover:rotate-12" />
+              Start Journaling
             </Button>
             <Button 
               variant="gentle" 
               size="lg" 
               className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+              onClick={handleAIChatbot}
+            >
+              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 transition-transform duration-200 group-hover:scale-110" />
+              AI Chatbot
+            </Button>
+          </div>
+
+          <div className="flex justify-center">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 h-auto transition-all duration-300 hover:scale-105 hover:shadow-lg group"
               onClick={handleJoinCommunity}
             >
               <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 transition-transform duration-200 group-hover:scale-110" />
               Browse Communities
             </Button>
           </div>
-
-          {/* Reddit Style Post Editor */}
-          <RedditStylePostEditor 
-            isOpen={isCreatePostOpen} 
-            onClose={() => setIsCreatePostOpen(false)} 
-          />
 
           {/* Feature Icons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto">
