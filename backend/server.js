@@ -2,8 +2,11 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const path = require('path'); // <-- Import the 'path' module
+
 const userRoutes = require('./users/users.route');
 const communityRoutes = require('./community/community.route');
+const postRoutes = require('./posts/posts.route'); // <-- Import post routes
 
 // Validate required environment variables
 const requiredEnvVars = ['JWT_SECRET', 'DB_USER', 'DB_HOST', 'DB_NAME', 'DB_PASSWORD', 'DB_PORT'];
@@ -30,12 +33,20 @@ app.use(cors({
 // This allows us to access `req.body` in our controllers
 app.use(express.json());
 
+// --- Static File Serving ---
+// This makes the 'uploads' folder publicly accessible.
+// A request to http://localhost:3000/uploads/image.jpg will now serve the file.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // --- Main Routes ---
 // Any request starting with '/api/users' will be handled by our userRoutes file.
 app.use('/api/users', userRoutes);
 
 // Any request starting with '/api/communities' will be handled by our communityRoutes file.
 app.use('/api/community', communityRoutes);
+
+// Any request starting with '/api/posts' will be handled by our postRoutes file.
+app.use('/api/posts', postRoutes);
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
@@ -45,7 +56,7 @@ app.use((err, req, res, next) => {
 
 // A simple root route to check if the server is running
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Mindful Commune AI Backend is running!',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
@@ -63,3 +74,4 @@ app.listen(PORT, () => {
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 CORS enabled for frontend development`);
 });
+
