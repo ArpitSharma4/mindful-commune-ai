@@ -17,23 +17,31 @@ const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { theme, setTheme, resolvedTheme } = useTheme();
 
-  // Check authentication status on component mount
+  // Check authentication status on component mount and listen for changes
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
-    setIsLoggedIn(!!(token && userData));
-  }, []);
-
-  // Listen for storage changes to update auth state across tabs
-  useEffect(() => {
-    const handleStorageChange = () => {
+    const checkAuthStatus = () => {
       const token = localStorage.getItem('authToken');
       const userData = localStorage.getItem('userData');
       setIsLoggedIn(!!(token && userData));
     };
 
+    // Initial check
+    checkAuthStatus();
+
+    // Listen for storage changes to update auth state across tabs
+    const handleStorageChange = () => {
+      checkAuthStatus();
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom auth events
+    window.addEventListener('authStateChanged', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authStateChanged', handleStorageChange);
+    };
   }, []);
 
   const handleUserProfile = () => {
@@ -47,6 +55,8 @@ const Header = () => {
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
     setIsLoginModalOpen(false);
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('authStateChanged'));
   };
 
   const handleHelp = () => {

@@ -70,11 +70,26 @@ const createUser = async (req, res) => {
   } catch (error) {
     // 6. WHERE: Error handling is crucial.
     //    WHY: If anything goes wrong (e.g., duplicate username), we need to send a meaningful error.
-    console.error('Error creating user:', error);
+    console.error('Error creating user:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint
+    });
     
     // Check for PostgreSQL's unique violation error code
     if (error.code === '23505') {
-      return res.status(409).json({ error: 'Username or email already exists.' });
+      // Determine which field is duplicated based on constraint name
+      let duplicateField = 'Username or email';
+      if (error.constraint === 'users_username_key') {
+        duplicateField = 'Username';
+      } else if (error.constraint === 'users_email_key') {
+        duplicateField = 'Email';
+      }
+      
+      return res.status(409).json({ 
+        error: `${duplicateField} already exists. Please choose a different one.` 
+      });
     }
 
     res.status(500).json({ error: 'Internal Server Error' });

@@ -30,22 +30,45 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
     userId: number;
   } | null>(null);
 
-  // Check authentication status on component mount
+  // Check authentication status on component mount and listen for changes
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const storedUserData = localStorage.getItem('userData');
-    
-    if (token && storedUserData) {
-      try {
-        const parsedUserData = JSON.parse(storedUserData);
-        setUserData(parsedUserData);
-        setIsLoggedIn(true);
-      } catch (error) {
-        // If there's an error parsing user data, clear storage
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
+    const checkAuthStatus = () => {
+      const token = localStorage.getItem('authToken');
+      const storedUserData = localStorage.getItem('userData');
+      
+      if (token && storedUserData) {
+        try {
+          const parsedUserData = JSON.parse(storedUserData);
+          setUserData(parsedUserData);
+          setIsLoggedIn(true);
+        } catch (error) {
+          // If there's an error parsing user data, clear storage
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          setUserData(null);
+          setIsLoggedIn(false);
+        }
+      } else {
+        setUserData(null);
+        setIsLoggedIn(false);
       }
-    }
+    };
+
+    // Initial check
+    checkAuthStatus();
+
+    // Listen for storage changes and custom auth events
+    const handleAuthChange = () => {
+      checkAuthStatus();
+    };
+
+    window.addEventListener('storage', handleAuthChange);
+    window.addEventListener('authStateChanged', handleAuthChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('authStateChanged', handleAuthChange);
+    };
   }, []);
 
   const handleLogin = () => {
@@ -65,6 +88,9 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
       }
     }
     
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('authStateChanged'));
+    
     setIsLoginModalOpen(false);
     onClose();
     toast({
@@ -80,8 +106,8 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
     setIsLoggedIn(false);
     setUserData(null);
     
-    // Dispatch storage event to notify other components
-    window.dispatchEvent(new Event('storage'));
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('authStateChanged'));
     
     onClose();
     toast({
@@ -113,7 +139,8 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
     return `u/${username}`;
   };
 
-  if (!isOpen) return null;
+  // Don't show dropdown if not open or user is not logged in
+  if (!isOpen || !isLoggedIn || !userData) return null;
 
   return (
     <>
@@ -130,15 +157,15 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
           <div className="flex items-center gap-3 pb-3 border-b">
             <Avatar className="h-10 w-10">
               <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                {isLoggedIn && userData ? getInitials(userData.username) : 'JD'}
+                {getInitials(userData.username)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <div className="font-medium">
-                {isLoggedIn && userData ? userData.username : 'John Doe'}
+                {userData.username}
               </div>
               <div className="text-sm text-muted-foreground">
-                {isLoggedIn && userData ? getUsernameDisplay(userData.username) : 'u/JohnDoe123'}
+                {getUsernameDisplay(userData.username)}
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => handleMenuItem("View Profile")}>
@@ -192,25 +219,14 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
             </Link>
 
             <div className="border-t pt-3">
-              {isLoggedIn ? (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-3 h-auto p-3 text-destructive hover:text-destructive"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Log Out</span>
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-3 h-auto p-3 text-primary hover:text-primary"
-                  onClick={handleLogin}
-                >
-                  <LogIn className="h-4 w-4" />
-                  <span>Log In</span>
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 h-auto p-3 text-destructive hover:text-destructive"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Log Out</span>
+              </Button>
             </div>
           </div>
         </div>

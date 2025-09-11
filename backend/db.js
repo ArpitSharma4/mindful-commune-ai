@@ -14,5 +14,20 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
+// Test database connection on startup
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('❌ Error connecting to database:', err.message);
+    return;
+  }
+  console.log('✅ Database connected successfully');
+  release();
+});
+
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('❌ Unexpected database error:', err);
+});
+
 // Export the pool so other parts of the application can use it to query the database.
 module.exports = pool;
