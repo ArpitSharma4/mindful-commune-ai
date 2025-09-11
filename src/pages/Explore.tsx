@@ -3,7 +3,7 @@ import LeftSidebar from "@/components/LeftSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, MessageSquare, Heart, TrendingUp, Search, Plus, Leaf, BookOpen } from "lucide-react";
+import { Users, MessageSquare, Heart, TrendingUp, Search, Plus, Leaf, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ const Explore = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingJoined, setIsLoadingJoined] = useState(true);
   const [joinedCommunities, setJoinedCommunities] = useState(new Set());
+  const [showAllJoined, setShowAllJoined] = useState(false);
 
   // Fetch communities from backend
   const fetchCommunities = async () => {
@@ -93,6 +94,11 @@ const Explore = () => {
     community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (community.description && community.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Get communities to display based on expand state
+  const displayedJoinedCommunities = showAllJoined 
+    ? joinedCommunitiesData 
+    : joinedCommunitiesData.slice(0, 3);
 
   const handleJoinCommunity = async (communityId: string) => {
     try {
@@ -234,15 +240,35 @@ const Explore = () => {
                 {/* Joined Communities Section */}
                 {!isLoadingJoined && joinedCommunitiesData.length > 0 && (
                   <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <BookOpen className="h-6 w-6 text-therapeutic" />
-                      <h2 className="text-2xl font-bold">Your Communities</h2>
-                      <Badge variant="secondary" className="text-sm">
-                        {joinedCommunitiesData.length}
-                      </Badge>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <BookOpen className="h-6 w-6 text-therapeutic" />
+                        <h2 className="text-2xl font-bold">Your Communities</h2>
+                        <Badge variant="secondary" className="text-sm">
+                          {joinedCommunitiesData.length}
+                        </Badge>
+                      </div>
+                      {joinedCommunitiesData.length > 3 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowAllJoined(!showAllJoined)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          {showAllJoined ? (
+                            <>
+                              Show Less <ChevronUp className="h-4 w-4 ml-1" />
+                            </>
+                          ) : (
+                            <>
+                              Show More ({joinedCommunitiesData.length - 3}) <ChevronDown className="h-4 w-4 ml-1" />
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {joinedCommunitiesData.map((community) => (
+                      {displayedJoinedCommunities.map((community) => (
                         <Card key={`joined-${community.community_id}`} className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-therapeutic/20">
                           <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
