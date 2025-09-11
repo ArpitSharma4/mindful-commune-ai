@@ -12,7 +12,7 @@ import {
   Settings
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LoginModal from "./LoginModal";
 
 interface UserProfileDropdownProps {
@@ -24,13 +24,46 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
   const { toast } = useToast();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState<{
+    username: string;
+    userId: number;
+  } | null>(null);
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const storedUserData = localStorage.getItem('userData');
+    
+    if (token && storedUserData) {
+      try {
+        const parsedUserData = JSON.parse(storedUserData);
+        setUserData(parsedUserData);
+        setIsLoggedIn(true);
+      } catch (error) {
+        // If there's an error parsing user data, clear storage
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+      }
+    }
+  }, []);
 
   const handleLogin = () => {
     setIsLoginModalOpen(true);
   };
 
   const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
+    // Refresh user data from localStorage after successful login
+    const storedUserData = localStorage.getItem('userData');
+    if (storedUserData) {
+      try {
+        const parsedUserData = JSON.parse(storedUserData);
+        setUserData(parsedUserData);
+        setIsLoggedIn(true);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+    
     setIsLoginModalOpen(false);
     onClose();
     toast({
@@ -40,7 +73,11 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
   };
 
   const handleLogout = () => {
+    // Clear all authentication data
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
     setIsLoggedIn(false);
+    setUserData(null);
     onClose();
     toast({
       title: "Logged Out",
@@ -54,6 +91,21 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
       description: `Opening ${item.toLowerCase()}...`,
     });
     onClose();
+  };
+
+  // Generate initials from username
+  const getInitials = (username: string) => {
+    return username
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Generate username display (e.g., "u/johndoe")
+  const getUsernameDisplay = (username: string) => {
+    return `u/${username}`;
   };
 
   if (!isOpen) return null;
@@ -73,12 +125,16 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
           <div className="flex items-center gap-3 pb-3 border-b">
             <Avatar className="h-10 w-10">
               <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                JD
+                {isLoggedIn && userData ? getInitials(userData.username) : 'JD'}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <div className="font-medium">John Doe</div>
-              <div className="text-sm text-muted-foreground">u/JohnDoe123</div>
+              <div className="font-medium">
+                {isLoggedIn && userData ? userData.username : 'John Doe'}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {isLoggedIn && userData ? getUsernameDisplay(userData.username) : 'u/JohnDoe123'}
+              </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => handleMenuItem("View Profile")}>
               <User className="h-4 w-4" />

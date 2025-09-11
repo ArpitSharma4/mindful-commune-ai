@@ -40,8 +40,16 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
       const data = await response.json();
 
       if (response.ok) {
-        // Store the JWT token
+        // Store the JWT token and user data
         localStorage.setItem('authToken', data.token);
+        
+        // Decode the JWT to get user info (username, userId)
+        const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+        localStorage.setItem('userData', JSON.stringify({
+          userId: tokenPayload.userId,
+          username: tokenPayload.username
+        }));
+        
         onLoginSuccess();
       } else {
         toast({
