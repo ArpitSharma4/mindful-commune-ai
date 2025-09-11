@@ -9,14 +9,14 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Therapeutic color palette for mental health app */
-    /* Cream background */
-    --background: 45 100% 97%;
+    /* Soft cream background - easier on eyes */
+    --background: 45 30% 95%;
     --foreground: 215 25% 27%;
 
-    --card: 0 0% 100%;
+    --card: 45 20% 98%;
     --card-foreground: 215 25% 27%;
 
-    --popover: 0 0% 100%;
+    --popover: 45 20% 98%;
     --popover-foreground: 215 25% 27%;
 
     /* Calming teal primary color */
@@ -25,11 +25,11 @@ All colors MUST be HSL.
     --primary-glow: 174 62% 67%;
 
     /* Soft secondary colors */
-    --secondary: 210 40% 96%;
+    --secondary: 45 25% 93%;
     --secondary-foreground: 215 25% 27%;
 
     /* Muted therapeutic tones */
-    --muted: 210 30% 94%;
+    --muted: 45 20% 91%;
     --muted-foreground: 215 15% 55%;
 
     /* Gentle accent colors */
@@ -41,14 +41,14 @@ All colors MUST be HSL.
     --destructive-foreground: 0 0% 100%;
 
     /* Soft borders and inputs */
-    --border: 210 30% 88%;
-    --input: 210 30% 88%;
+    --border: 45 20% 85%;
+    --input: 45 20% 85%;
     --ring: 174 62% 47%;
 
     /* Therapeutic gradients */
     --gradient-primary: linear-gradient(135deg, hsl(174 62% 47%), hsl(174 62% 67%));
-    --gradient-background: linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 30% 98%));
+    --gradient-background: linear-gradient(180deg, hsl(45 30% 95%), hsl(45 25% 93%));
+    --gradient-card: linear-gradient(145deg, hsl(45 20% 98%), hsl(45 15% 96%));
     
     /* Therapeutic shadows */
     --shadow-therapeutic: 0 8px 25px -8px hsl(174 62% 47% / 0.15);
@@ -60,7 +60,7 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 45 25% 96%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
@@ -68,11 +68,11 @@ All colors MUST be HSL.
 
     --sidebar-primary-foreground: 0 0% 98%;
 
-    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent: 45 20% 93%;
 
     --sidebar-accent-foreground: 240 5.9% 10%;
 
-    --sidebar-border: 220 13% 91%;
+    --sidebar-border: 45 15% 88%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
   }

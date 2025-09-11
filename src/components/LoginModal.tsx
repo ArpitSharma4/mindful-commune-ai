@@ -309,21 +309,50 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
         {/* Password Requirements */}
         {formData.password && (
           <div className="mt-2 p-3 bg-muted/50 rounded-md">
-            <p className="text-sm font-medium mb-2">Password Requirements:</p>
-            <div className="space-y-1">
-              {validatePassword(formData.password).map(({ key, valid, message }) => (
-                <div key={key} className="flex items-center gap-2 text-sm">
-                  {valid ? (
-                    <Check className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <AlertCircle className="h-3 w-3 text-muted-foreground" />
-                  )}
-                  <span className={valid ? "text-green-600" : "text-muted-foreground"}>
-                    {message}
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium">Password Strength</p>
+              <span className="text-xs text-muted-foreground">
+                {validatePassword(formData.password).filter(rule => rule.valid).length}/5
+              </span>
             </div>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-muted rounded-full h-2 mb-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  validatePassword(formData.password).filter(rule => rule.valid).length === 0 ? 'w-0 bg-destructive' :
+                  validatePassword(formData.password).filter(rule => rule.valid).length <= 2 ? 'bg-destructive' :
+                  validatePassword(formData.password).filter(rule => rule.valid).length <= 4 ? 'bg-yellow-500' :
+                  'bg-green-500'
+                }`}
+                style={{ 
+                  width: `${(validatePassword(formData.password).filter(rule => rule.valid).length / 5) * 100}%` 
+                }}
+              />
+            </div>
+            
+            {/* Strength Label */}
+            <p className={`text-xs font-medium ${
+              validatePassword(formData.password).filter(rule => rule.valid).length === 0 ? 'text-muted-foreground' :
+              validatePassword(formData.password).filter(rule => rule.valid).length <= 2 ? 'text-destructive' :
+              validatePassword(formData.password).filter(rule => rule.valid).length <= 4 ? 'text-yellow-600' :
+              'text-green-600'
+            }`}>
+              {validatePassword(formData.password).filter(rule => rule.valid).length === 0 ? 'Enter password' :
+               validatePassword(formData.password).filter(rule => rule.valid).length <= 2 ? 'Weak' :
+               validatePassword(formData.password).filter(rule => rule.valid).length <= 4 ? 'Medium' :
+               'Strong'}
+            </p>
+            
+            {/* Show missing requirements only when password is not strong */}
+            {validatePassword(formData.password).filter(rule => rule.valid).length < 5 && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                Missing: {validatePassword(formData.password)
+                  .filter(rule => !rule.valid)
+                  .map(rule => rule.message.toLowerCase())
+                  .join(', ')}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import LoginModal from "./LoginModal";
 
 interface UserProfileDropdownProps {
@@ -78,6 +79,10 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
     localStorage.removeItem('userData');
     setIsLoggedIn(false);
     setUserData(null);
+    
+    // Dispatch storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
+    
     onClose();
     toast({
       title: "Logged Out",
@@ -176,14 +181,15 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
               </div>
             </Button>
 
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Settings")}
-            >
-              <Settings className="h-4 w-4" />
-              <span>Settings</span>
-            </Button>
+            <Link to="/settings" onClick={onClose}>
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 h-auto p-3"
+              >
+                <Settings className="h-4 w-4" />
+                <span>Settings</span>
+              </Button>
+            </Link>
 
             <div className="border-t pt-3">
               {isLoggedIn ? (
