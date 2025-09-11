@@ -37,7 +37,7 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated, communityId }: 
   const fetchCommunities = async () => {
     try {
       setIsLoadingCommunities(true);
-      const response = await fetch('/api/community/getAllCommunities');
+      const response = await fetch('/api/community/');
       
       if (response.ok) {
         const data = await response.json();
@@ -356,17 +356,24 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated, communityId }: 
       // Get HTML content for rich formatting, but send plain text to backend for now
       const htmlContent = contentRef.current?.innerHTML || '';
       
+      // Create FormData to match backend multer expectations
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', formData.title.trim());
+      formDataToSend.append('content', contentText.trim());
+      formDataToSend.append('is_posted_anonymously', formData.isAnonymous.toString());
+      
+      // Add image file if uploaded
+      if (uploadedFile) {
+        formDataToSend.append('media', uploadedFile);
+      }
+      
       const response = await fetch(`/api/posts/in/${selectedCommunity.community_id}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
+          // Don't set Content-Type - let browser set it for FormData
         },
-        body: JSON.stringify({
-          title: formData.title.trim(),
-          content: contentText.trim(), // Send plain text for backend compatibility
-          is_posted_anonymously: formData.isAnonymous
-        })
+        body: formDataToSend
       });
 
       const data = await response.json();
@@ -700,7 +707,7 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated, communityId }: 
               onInput={handleContentChange}
               onKeyUp={updateActiveFormats}
               onMouseUp={updateActiveFormats}
-              className="min-h-[120px] p-4 bg-muted/50 border border-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 overflow-y-auto"
+              className="min-h-[120px] p-4 bg-muted/50 border border-muted rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 overflow-y-auto content-editable-placeholder"
               style={{ 
                 maxHeight: '50vh',
                 lineHeight: '1.6',
@@ -708,7 +715,7 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated, communityId }: 
                 fontSize: '14px',
                 fontWeight: 'normal'
               }}
-              placeholder="Share your thoughts, experiences, or ask for support..."
+              data-placeholder="Share your thoughts, experiences, or ask for support..."
               suppressContentEditableWarning={true}
               onFocus={(e) => {
                 if (e.target.textContent === '') {
@@ -720,6 +727,19 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated, communityId }: 
             
             {/* Add CSS styles for proper list display */}
             <style jsx>{`
+              .content-editable-placeholder:empty:before {
+                content: attr(data-placeholder);
+                color: hsl(var(--muted-foreground));
+                pointer-events: none;
+                position: absolute;
+              }
+              
+              .content-editable-placeholder:focus:empty:before {
+                content: attr(data-placeholder);
+                color: hsl(var(--muted-foreground));
+                opacity: 0.7;
+              }
+              
               div[contenteditable] ul {
                 list-style-type: disc;
                 margin-left: 20px;
