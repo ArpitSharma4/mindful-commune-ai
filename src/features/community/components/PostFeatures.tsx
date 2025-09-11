@@ -60,11 +60,20 @@ const JournalPost = ({
   const commentCount = comment_count ?? comments ?? 0;
   const mediaSource = media_url || imageUrl;
   
+  // Process image URL to ensure it's properly formatted
+  const processedImageUrl = mediaSource ? (
+    mediaSource.startsWith('http') ? mediaSource : 
+    mediaSource.startsWith('/') ? mediaSource :
+    `/uploads/${mediaSource}`
+  ) : null;
+
   const [currentVoteScore, setCurrentVoteScore] = useState(voteCount);
   const [userVote, setUserVote] = useState<1 | -1 | null>(null); 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (disableAnimations) {
@@ -248,9 +257,37 @@ const JournalPost = ({
             </div>
 
             {/* Media if present */}
-            {mediaSource && (
-              <div className="rounded-lg overflow-hidden">
-                <img src={mediaSource} alt="Post media" className="w-full h-auto max-h-96 object-cover" />
+            {processedImageUrl && (
+              <div className="rounded-lg overflow-hidden bg-muted/20">
+                {!imageError ? (
+                  <>
+                    {!imageLoaded && (
+                      <div className="w-full h-48 bg-muted/50 animate-pulse flex items-center justify-center">
+                        <span className="text-muted-foreground text-sm">Loading image...</span>
+                      </div>
+                    )}
+                    <img 
+                      src={processedImageUrl} 
+                      alt="Post media" 
+                      className={`w-full h-auto max-h-96 object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                      onLoad={() => setImageLoaded(true)}
+                      onError={(e) => {
+                        console.error('Image failed to load:', processedImageUrl);
+                        setImageError(true);
+                        setImageLoaded(false);
+                      }}
+                      style={imageLoaded ? {} : { position: 'absolute', visibility: 'hidden' }}
+                    />
+                  </>
+                ) : (
+                  <div className="w-full h-48 bg-muted/50 flex items-center justify-center border-2 border-dashed border-muted">
+                    <div className="text-center text-muted-foreground">
+                      <div className="text-sm">Failed to load image</div>
+                      <div className="text-xs mt-1">URL: {processedImageUrl}</div>
+                      <div className="text-xs">Image may be corrupted or unavailable</div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
