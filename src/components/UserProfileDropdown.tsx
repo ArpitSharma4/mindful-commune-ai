@@ -7,10 +7,13 @@ import {
   FileText, 
   Trophy, 
   TrendingUp, 
-  LogOut, 
+  LogIn, 
+  LogOut,
   Settings
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import LoginModal from "./LoginModal";
 
 interface UserProfileDropdownProps {
   isOpen: boolean;
@@ -19,13 +22,30 @@ interface UserProfileDropdownProps {
 
 const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
   const { toast } = useToast();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const handleLogin = () => {
+    setIsLoginModalOpen(true);
+  };
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    setIsLoginModalOpen(false);
+    onClose();
+    toast({
+      title: "Login Successful! 🎉",
+      description: "Welcome back to EchoWell!",
+    });
+  };
 
   const handleLogout = () => {
+    setIsLoggedIn(false);
+    onClose();
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
     });
-    onClose();
   };
 
   const handleMenuItem = (item: string) => {
@@ -109,7 +129,6 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
               </div>
             </Button>
 
-
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"
@@ -120,18 +139,35 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
             </Button>
 
             <div className="border-t pt-3">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-3 h-auto p-3 text-destructive hover:text-destructive"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Log Out</span>
-              </Button>
+              {isLoggedIn ? (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-3 h-auto p-3 text-destructive hover:text-destructive"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Log Out</span>
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-3 h-auto p-3 text-primary hover:text-primary"
+                  onClick={handleLogin}
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span>Log In</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </>
   );
 };
