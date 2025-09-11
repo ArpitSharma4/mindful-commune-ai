@@ -35,7 +35,7 @@ const CreateCommunityModal = ({ isOpen, onClose, onCommunityCreated }: CreateCom
         title: "Community Name Required",
         description: "Please enter a name for your community.",
         variant: "destructive",
-        duration: 5000,
+        duration: 3000,
       });
       return;
     }
@@ -50,7 +50,7 @@ const CreateCommunityModal = ({ isOpen, onClose, onCommunityCreated }: CreateCom
           title: "Authentication Required",
           description: "Please log in to create a community.",
           variant: "destructive",
-          duration: 5000,
+          duration: 3000,
         });
         setIsLoading(false);
         return;
@@ -74,7 +74,7 @@ const CreateCommunityModal = ({ isOpen, onClose, onCommunityCreated }: CreateCom
         toast({
           title: "Community Created! 🎉",
           description: `${formData.name} has been successfully created.`,
-          duration: 5000,
+          duration: 3000,
         });
         
         onCommunityCreated(data);
@@ -87,7 +87,7 @@ const CreateCommunityModal = ({ isOpen, onClose, onCommunityCreated }: CreateCom
           title: "Failed to Create Community",
           description: data.error || "An error occurred while creating the community.",
           variant: "destructive",
-          duration: 5000,
+          duration: 3000,
         });
       }
     } catch (error) {
@@ -96,7 +96,7 @@ const CreateCommunityModal = ({ isOpen, onClose, onCommunityCreated }: CreateCom
         title: "Network Error",
         description: "Unable to connect to the server. Please try again.",
         variant: "destructive",
-        duration: 5000,
+        duration: 3000,
       });
     } finally {
       setIsLoading(false);

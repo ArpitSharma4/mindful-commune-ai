@@ -91,9 +91,34 @@ const joinCommunity = async (req, res) => {
   }
 };
 
+const getJoinedCommunities = async (req, res) => {
+  try {
+    // 1. Get the userId from the authenticated user (provided by authMiddleware).
+    const userId = req.user.userId;
+
+    // 2. Query the database to get all communities the user has joined.
+    const joinedCommunitiesQuery = `
+      SELECT c.*, u.username AS creator_username
+      FROM communities c
+      JOIN community_members cm ON c.community_id = cm.community_id
+      JOIN users u ON c.creator_id = u.user_id
+      WHERE cm.user_id = $1
+      ORDER BY cm.joined_at DESC;
+    `;
+    const joinedCommunities = await pool.query(joinedCommunitiesQuery, [userId]);
+
+    // 3. Send the list of joined communities as a JSON response.
+    res.status(200).json(joinedCommunities.rows);
+
+  } catch (error) {
+    console.error('Error fetching joined communities:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   createCommunity,
   getAllCommunities,
   joinCommunity,
+  getJoinedCommunities,
 };
-
