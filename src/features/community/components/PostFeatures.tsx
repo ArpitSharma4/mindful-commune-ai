@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ChevronUp, ChevronDown, MessageCircle, Share2, MoreHorizontal, Bookmark, Eye } from "lucide-react";
+import { ChevronUp, ChevronDown, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -63,8 +63,6 @@ const JournalPost = ({
   const [currentVoteScore, setCurrentVoteScore] = useState(voteCount);
   const [userVote, setUserVote] = useState<1 | -1 | null>(null); 
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [viewCount, setViewCount] = useState(Math.floor(Math.random() * 500) + 50);
   const [isVisible, setIsVisible] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
 
@@ -169,19 +167,8 @@ const JournalPost = ({
     });
   };
 
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
-    toast({
-      title: isBookmarked ? "Bookmark removed" : "Post bookmarked! 📚",
-      description: isBookmarked ? "Removed from your saved posts." : "Added to your saved posts for later reading.",
-    });
-  };
-
   const handleExpand = () => {
     setIsExpanded(!isExpanded);
-    if (!isExpanded) {
-      setViewCount(prev => prev + 1);
-    }
   };
 
   const truncatedContent = content.length > 200 ? content.substring(0, 200) + "..." : content;
@@ -297,19 +284,6 @@ const JournalPost = ({
               <Share2 className="h-4 w-4 mr-2 transition-transform duration-200 hover:rotate-12" />
               Share
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={`transition-all duration-200 hover:scale-105 ${isBookmarked ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              onClick={handleBookmark}
-            >
-              <Bookmark className={`h-4 w-4 mr-2 transition-all duration-200 ${isBookmarked ? 'fill-current' : ''}`} />
-              {isBookmarked ? 'Saved' : 'Save'}
-            </Button>
-          </div>
-          <div className="flex items-center text-xs text-muted-foreground">
-            <Eye className="h-3 w-3 mr-1" />
-            {viewCount} views
           </div>
         </div>
       </CardFooter>
