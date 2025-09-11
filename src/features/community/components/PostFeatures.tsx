@@ -7,40 +7,66 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 interface JournalPostProps {
-  id: string;
+  post_id?: string;
+  author_username?: string;
+  is_posted_anonymously?: boolean;
+  created_at?: string;
+  vote_score?: number;
+  comment_count?: number;
+  media_url?: string;
+  media_type?: string;
+  id?: string;
   title: string;
   content: string;
-  author: string;
-  isAnonymous: boolean;
-  timeAgo: string;
-  upvotes: number;
-  comments: number;
-  tags: string[];
-  community: string;
+  author?: string;
+  isAnonymous?: boolean;
+  timeAgo?: string;
+  upvotes?: number;
+  comments?: number;
+  tags?: string[];
+  community?: string;
   imageUrl?: string;
   disableAnimations?: boolean;
 }
 
 const JournalPost = ({ 
+  post_id,
+  author_username,
+  is_posted_anonymously,
+  created_at,
+  vote_score,
+  comment_count,
+  media_url,
+  media_type,
+  id,
   title, 
   content, 
   author, 
   isAnonymous, 
   timeAgo, 
   upvotes: initialUpvotes, 
-  comments, 
-  tags,
+  comments,
+  tags = [],
   community,
   imageUrl,
   disableAnimations
 }: JournalPostProps) => {
   const { toast } = useToast();
-  const [upvotes, setUpvotes] = useState(initialUpvotes);
-  const [voteState, setVoteState] = useState<'up' | 'down' | null>(null);
+  
+  const postId = post_id || id;
+  const authorName = is_posted_anonymously ? "Anonymous" : (author_username || author);
+  const isAnon = is_posted_anonymously ?? isAnonymous ?? false;
+  const voteCount = vote_score ?? initialUpvotes ?? 0;
+  const commentCount = comment_count ?? comments ?? 0;
+  const mediaSource = media_url || imageUrl;
+  
+  const [currentVoteScore, setCurrentVoteScore] = useState(voteCount);
+  const [userVote, setUserVote] = useState<1 | -1 | null>(null); 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [viewCount, setViewCount] = useState(Math.floor(Math.random() * 500) + 50);
   const [isVisible, setIsVisible] = useState(false);
+  const [isVoting, setIsVoting] = useState(false);
 
   useEffect(() => {
     if (disableAnimations) {
@@ -51,25 +77,74 @@ const JournalPost = ({
     return () => clearTimeout(timer);
   }, [disableAnimations]);
 
-  const handleVote = (type: 'up' | 'down') => {
-    if (voteState === type) {
-      setVoteState(null);
-      setUpvotes(type === 'up' ? upvotes - 1 : upvotes + 1);
-      toast({
-        title: type === 'up' ? "Upvote removed" : "Downvote removed",
-        description: "Your vote has been removed.",
-      });
-    } else {
-      if (voteState) {
-        setUpvotes(type === 'up' ? upvotes + 2 : upvotes - 2);
-      } else {
-        setUpvotes(type === 'up' ? upvotes + 1 : upvotes - 1);
+  const handleVote = async (voteType: 1 | -1) => {
+    if (!postId || isVoting) return;
+    
+    setIsVoting(true);
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to vote on posts.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        setIsVoting(false);
+        return;
       }
-      setVoteState(type);
-      toast({
-        title: type === 'up' ? "Post upvoted! 💙" : "Post downvoted",
-        description: type === 'up' ? "Thank you for supporting this story." : "Your feedback has been recorded.",
+
+      const response = await fetch(`/api/posts/${postId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          voteType: voteType
+        })
       });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setCurrentVoteScore(data.newScore);
+        
+        if (userVote === voteType) {
+          setUserVote(null);
+          toast({
+            title: voteType === 1 ? "Upvote removed" : "Downvote removed",
+            description: "Your vote has been removed.",
+            duration: 3000,
+          });
+        } else {
+          setUserVote(voteType);
+          toast({
+            title: voteType === 1 ? "Post upvoted! 💙" : "Post downvoted",
+            description: voteType === 1 ? "Thank you for supporting this story." : "Your feedback has been recorded.",
+            duration: 3000,
+          });
+        }
+      } else {
+        toast({
+          title: "Voting Failed",
+          description: data.error || "Unable to record your vote. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Error voting on post:', error);
+      toast({
+        title: "Network Error",
+        description: "Unable to connect to the server. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsVoting(false);
     }
   };
 
@@ -121,19 +196,21 @@ const JournalPost = ({
             <Button
               variant="ghost"
               size="icon"
-              className={`h-8 w-8 ${voteState === 'up' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary'}`}
-              onClick={() => handleVote('up')}
+              className={`h-8 w-8 ${userVote === 1 ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary'} ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => handleVote(1)}
+              disabled={isVoting}
             >
               <ChevronUp className="h-4 w-4" />
             </Button>
-            <span className={`text-sm font-medium ${voteState === 'up' ? 'text-primary' : voteState === 'down' ? 'text-destructive' : 'text-foreground'}`}>
-              {upvotes}
+            <span className={`text-sm font-medium ${userVote === 1 ? 'text-primary' : userVote === -1 ? 'text-destructive' : 'text-foreground'}`}>
+              {currentVoteScore}
             </span>
             <Button
               variant="ghost"
               size="icon"
-              className={`h-8 w-8 ${voteState === 'down' ? 'text-destructive bg-destructive/10' : 'text-muted-foreground hover:text-destructive'}`}
-              onClick={() => handleVote('down')}
+              className={`h-8 w-8 ${userVote === -1 ? 'text-destructive bg-destructive/10' : 'text-muted-foreground hover:text-destructive'} ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => handleVote(-1)}
+              disabled={isVoting}
             >
               <ChevronDown className="h-4 w-4" />
             </Button>
@@ -146,16 +223,16 @@ const JournalPost = ({
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="text-xs bg-gradient-primary text-primary-foreground">
-                    {isAnonymous ? "A" : author[0]?.toUpperCase()}
+                    {isAnon ? "A" : (authorName?.[0]?.toUpperCase() || "U")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-sm text-muted-foreground">
                   <span className="font-medium">
-                    {isAnonymous ? "Anonymous" : author}
+                    {authorName || "User"}
                   </span>
-                  {isAnonymous && <Badge variant="secondary" className="ml-2 text-xs">Anonymous</Badge>}
-                  <span className="ml-2">• {timeAgo}</span>
-                  <span className="ml-2">• {community}</span>
+                  {isAnon && <Badge variant="secondary" className="ml-2 text-xs">Anonymous</Badge>}
+                  <span className="ml-2">• {timeAgo || "just now"}</span>
+                  <span className="ml-2">• {community || "r/Community"}</span>
                 </div>
               </div>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleMoreOptions}>
@@ -183,15 +260,15 @@ const JournalPost = ({
               )}
             </div>
 
-            {/* Image if present */}
-            {imageUrl && (
+            {/* Media if present */}
+            {mediaSource && (
               <div className="rounded-lg overflow-hidden">
-                <img src={imageUrl} alt="Journal entry" className="w-full h-auto max-h-96 object-cover" />
+                <img src={mediaSource} alt="Post media" className="w-full h-auto max-h-96 object-cover" />
               </div>
             )}
 
             {/* Tags */}
-            {tags.length > 0 && (
+            {tags && tags.length > 0 && (
               <div className={`flex flex-wrap gap-2 ${disableAnimations ? '' : 'animate-fade-in'}`}>
                 {tags.map((tag, index) => (
                   <Badge 
@@ -214,7 +291,7 @@ const JournalPost = ({
           <div className="flex gap-4">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105" onClick={handleComment}>
               <MessageCircle className="h-4 w-4 mr-2 transition-transform duration-200 hover:rotate-12" />
-              {comments} comments
+              {commentCount} comments
             </Button>
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105" onClick={handleShare}>
               <Share2 className="h-4 w-4 mr-2 transition-transform duration-200 hover:rotate-12" />

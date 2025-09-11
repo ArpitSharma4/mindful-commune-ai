@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, PenTool, Bold, Italic, Strikethrough, Superscript, Subscript, Image, List, ListOrdered, Code, User, UserX } from "lucide-react";
+import { X, PenTool, Bold, Italic, Strikethrough, Superscript, Subscript, Image, List, ListOrdered, Code, User, UserX, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface RedditStylePostEditorProps {
@@ -29,6 +29,8 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
   const [communities, setCommunities] = useState([]);
   const [isLoadingCommunities, setIsLoadingCommunities] = useState(false);
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   // Fetch communities from backend
   const fetchCommunities = async () => {
@@ -173,17 +175,28 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
       return;
     }
 
-    // Create a local URL for the image and insert it
+    // Create a local URL for preview and store the file
     const reader = new FileReader();
     reader.onload = (e) => {
       const imageUrl = e.target?.result as string;
-      if (contentRef.current) {
-        contentRef.current.focus();
-        document.execCommand('insertImage', false, imageUrl);
-        handleContentChange();
-      }
+      setUploadedImage(imageUrl);
+      setUploadedFile(file);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setUploadedImage(null);
+    setUploadedFile(null);
+    // Clear the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    toast({
+      title: "Image Removed",
+      description: "The uploaded image has been removed.",
+      duration: 3000,
+    });
   };
 
   const handleFormatting = (format: string) => {
@@ -370,6 +383,13 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
           contentRef.current.innerHTML = '';
         }
         
+        // Clear uploaded image
+        setUploadedImage(null);
+        setUploadedFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        
         onClose();
         onPostCreated?.();
       } else {
@@ -401,6 +421,11 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
       tags: "",
       isAnonymous: false
     });
+    setUploadedImage(null);
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     onClose();
   };
 
@@ -635,6 +660,29 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated }: RedditStylePo
               onChange={handleFileChange}
               className="hidden"
             />
+
+            {/* Image Preview */}
+            {uploadedImage && (
+              <div className="relative">
+                <div className="rounded-lg overflow-hidden border border-muted">
+                  <img 
+                    src={uploadedImage} 
+                    alt="Upload preview" 
+                    className="w-full h-auto max-h-64 object-cover"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2 h-8 w-8 p-0"
+                  onClick={handleRemoveImage}
+                  title="Remove image"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
 
             {/* Rich Text Content Editor */}
             <div

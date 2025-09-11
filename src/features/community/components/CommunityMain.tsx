@@ -13,20 +13,25 @@ interface CommunityMainProps {
 }
 
 interface Post {
-  id: string;
+  post_id: string;
   title: string;
   content: string;
-  author: string;
-  isAnonymous: boolean;
-  timeAgo: string;
-  upvotes: number;
-  comments: number;
-  tags: string[];
-  community: string;
-  created_at?: string;
-  is_posted_anonymously?: boolean;
-  author_id?: number;
-  community_id?: number;
+  author_username: string;
+  is_posted_anonymously: boolean;
+  created_at: string;
+  vote_score: number;
+  comment_count: number;
+  media_url?: string;
+  media_type?: string;
+  // Legacy fields for compatibility
+  id?: string;
+  author?: string;
+  isAnonymous?: boolean;
+  timeAgo?: string;
+  upvotes?: number;
+  comments?: number;
+  tags?: string[];
+  community?: string;
 }
 
 const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainProps) => {
@@ -42,40 +47,50 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      // For now, we'll use the journaling endpoint as a fallback until we have a posts listing endpoint
-      const response = await fetch('/api/journaling/');
+      // Use the new posts API endpoint - we'll fetch from a default community for now
+      // In a real app, this would be dynamic based on selected community
+      const response = await fetch('/api/posts/in/1'); // Using community ID 1 as default
       
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data) {
+        if (Array.isArray(data)) {
           // Transform backend data to match our Post interface
-          const transformedPosts = data.data.map((post: any) => ({
-            id: post.id,
-            title: post.title,
-            content: post.content,
-            author: post.isAnonymous ? "Anonymous" : (post.author || "User"),
-            isAnonymous: post.isAnonymous || false,
-            timeAgo: post.timeAgo || "just now",
-            upvotes: post.upvotes || 0,
-            comments: post.comments || 0,
-            tags: post.tags || [],
-            community: post.community || "r/Community",
-            created_at: post.createdAt
+          const transformedPosts = data.map((post: any) => ({
+            ...post,
+            // Map new fields to legacy fields for compatibility
+            id: post.post_id,
+            author: post.is_posted_anonymously ? "Anonymous" : post.author_username,
+            isAnonymous: post.is_posted_anonymously,
+            timeAgo: getTimeAgo(post.created_at),
+            upvotes: post.vote_score,
+            comments: post.comment_count,
+            tags: [], // Posts don't have tags in new schema
+            community: "r/Community"
           }));
           setPosts(transformedPosts);
         }
       } else {
         console.error('Failed to fetch posts');
-        // Fallback to empty array if fetch fails
         setPosts([]);
       }
     } catch (error) {
       console.error('Error fetching posts:', error);
-      // Fallback to empty array if fetch fails
       setPosts([]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper function to calculate time ago
+  const getTimeAgo = (createdAt: string) => {
+    const now = new Date();
+    const postDate = new Date(createdAt);
+    const diffInMinutes = Math.floor((now.getTime() - postDate.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return "just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
   // Load posts on component mount
@@ -108,17 +123,30 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
     setTimeout(() => setIsLoading(false), 300);
   };
 
-  // Filter posts based on search term
-  const getFilteredPosts = () => {
-    if (!searchTerm) return posts;
-    return posts.filter(post => 
-      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+  // Filter and sort posts based on search term and active tab
+  const getFilteredAndSortedPosts = () => {
+    let filteredPosts = posts;
+    
+    // Apply search filter
+    if (searchTerm) {
+      filteredPosts = posts.filter(post => 
+        post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (post.tags && post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
+      );
+    }
+    
+    // Apply sorting based on active tab
+    if (activeTab === 'trending') {
+      // Sort by vote score (highest first) for trending
+      return filteredPosts.sort((a, b) => (b.vote_score || 0) - (a.vote_score || 0));
+    } else {
+      // Sort by created_at (newest first) for recent - already sorted from backend
+      return filteredPosts;
+    }
   };
 
-  const displayPosts = getFilteredPosts();
+  const displayPosts = getFilteredAndSortedPosts();
 
   useEffect(() => {
     setFilteredPosts(displayPosts);
@@ -214,7 +242,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
                   className={disableAnimations ? '' : 'animate-fade-in'}
                   style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                 >
-                    <CommunityPost {...post} disableAnimations={disableAnimations} />
+                  <CommunityPost {...post} disableAnimations={disableAnimations} />
                 </div>
               ))
             ) : searchTerm ? (
@@ -226,10 +254,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No posts available yet. Be the first to share!</p>
-                <Button variant="therapeutic" onClick={handleShareStory} className="mt-4">
-                  Create First Post
-                </Button>
+                <p className="text-muted-foreground">No posts available yet.</p>
               </div>
             )}
           </TabsContent>
@@ -242,7 +267,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
                 ))}
               </div>
             ) : displayPosts.length > 0 ? (
-              displayPosts.slice().reverse().map((post, index) => (
+              displayPosts.map((post, index) => (
                 <div 
                   key={post.id} 
                   className={disableAnimations ? '' : 'animate-fade-in'}
@@ -254,9 +279,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No recent posts available</p>
-                <Button variant="therapeutic" onClick={handleShareStory} className="mt-4">
-                  Create First Post
-                </Button>
               </div>
             )}
           </TabsContent>
