@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, MessageSquare, Heart, TrendingUp, Search, Plus, Leaf } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import CreateCommunityModal from "@/components/CreateCommunityModal";
 
@@ -14,114 +14,104 @@ const Explore = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isCreateCommunityOpen, setIsCreateCommunityOpen] = useState(false);
+  const [communities, setCommunities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock communities data
-  const communities = [
-    {
-      id: "1",
-      name: "Mindfulness & Meditation",
-      description: "A supportive space for sharing meditation experiences, mindfulness practices, and finding inner peace.",
-      members: 12500,
-      posts: 3200,
-      category: "Wellness",
-      tags: ["meditation", "mindfulness", "peace", "calm"],
-      isJoined: false
-    },
-    {
-      id: "2", 
-      name: "Depression Support",
-      description: "A safe community for those dealing with depression. Share your journey, find support, and know you're not alone.",
-      members: 8900,
-      posts: 2100,
-      category: "Mental Health",
-      tags: ["depression", "support", "recovery", "therapy"],
-      isJoined: true
-    },
-    {
-      id: "3",
-      name: "Anxiety Warriors",
-      description: "For those battling anxiety. Share coping strategies, success stories, and support each other through difficult moments.",
-      members: 15600,
-      posts: 4500,
-      category: "Mental Health", 
-      tags: ["anxiety", "coping", "strategies", "support"],
-      isJoined: false
-    },
-    {
-      id: "4",
-      name: "Self-Care Sundays",
-      description: "Weekly self-care tips, routines, and motivation. Because taking care of yourself isn't selfish, it's necessary.",
-      members: 22000,
-      posts: 6800,
-      category: "Lifestyle",
-      tags: ["self-care", "wellness", "routine", "motivation"],
-      isJoined: true
-    },
-    {
-      id: "5",
-      name: "Therapy & Counseling",
-      description: "Discuss therapy experiences, find resources, and support each other through the therapeutic process.",
-      members: 9800,
-      posts: 1900,
-      category: "Mental Health",
-      tags: ["therapy", "counseling", "professional-help", "resources"],
-      isJoined: false
-    },
-    {
-      id: "6",
-      name: "Gratitude Practice",
-      description: "Share what you're grateful for and inspire others to find joy in the little things.",
-      members: 18700,
-      posts: 5200,
-      category: "Wellness",
-      tags: ["gratitude", "positivity", "joy", "appreciation"],
-      isJoined: false
-    },
-    {
-      id: "7",
-      name: "LGBTQ+ Mental Health",
-      description: "A supportive space for LGBTQ+ individuals to discuss mental health challenges and celebrate victories.",
-      members: 13400,
-      posts: 3100,
-      category: "Community",
-      tags: ["lgbtq", "mental-health", "support", "pride"],
-      isJoined: true
-    },
-    {
-      id: "8",
-      name: "Work-Life Balance",
-      description: "Tips, strategies, and support for maintaining healthy boundaries between work and personal life.",
-      members: 16800,
-      posts: 4100,
-      category: "Lifestyle",
-      tags: ["work-life-balance", "boundaries", "productivity", "wellness"],
-      isJoined: false
+  // Fetch communities from backend
+  const fetchCommunities = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/community/');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCommunities(data);
+      } else {
+        console.error('Failed to fetch communities');
+        toast({
+          title: "Error",
+          description: "Failed to load communities. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching communities:', error);
+      toast({
+        title: "Network Error",
+        description: "Unable to connect to the server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  // Load communities on component mount
+  useEffect(() => {
+    fetchCommunities();
+  }, []);
 
   const filteredCommunities = communities.filter(community =>
     community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    community.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    community.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    (community.description && community.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleJoinCommunity = (communityId: string) => {
-    // Mock join functionality
-    console.log(`Joining community ${communityId}`);
+  const handleJoinCommunity = async (communityId: string) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to join communities.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`/api/community/${communityId}/join`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success! ",
+          description: "You've successfully joined the community!",
+        });
+      } else {
+        toast({
+          title: "Join Failed",
+          description: data.error || "Failed to join community.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error joining community:', error);
+      toast({
+        title: "Network Error",
+        description: "Unable to connect to the server.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreateCommunity = () => {
     setIsCreateCommunityOpen(true);
   };
 
-  const handleCommunityCreated = (community: any) => {
-    // Handle successful community creation
-    console.log('Community created:', community);
+  const handleCommunityCreated = (newCommunity: any) => {
+    // Add the new community to the top of the list
+    setCommunities(prev => [newCommunity, ...prev]);
+    
     toast({
       title: "Community Created! ",
-      description: `${community.name} has been successfully created.`,
+      description: `${newCommunity.name} has been successfully created.`,
     });
-    // You can add logic here to refresh community list or navigate to new community
   };
 
   return (
@@ -190,59 +180,76 @@ const Explore = () => {
                 </div>
 
                 {/* Communities Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredCommunities.map((community) => (
-                    <Card key={community.id} className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <CardTitle className="text-lg">{community.name}</CardTitle>
-                            <Badge variant="secondary" className="text-xs">
-                              {community.category}
-                            </Badge>
+                {isLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <Card key={i} className="animate-pulse">
+                        <CardHeader className="pb-3">
+                          <div className="h-6 bg-muted rounded w-3/4"></div>
+                          <div className="h-4 bg-muted rounded w-1/2 mt-2"></div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="h-16 bg-muted rounded"></div>
+                          <div className="flex gap-4">
+                            <div className="h-4 bg-muted rounded w-20"></div>
+                            <div className="h-4 bg-muted rounded w-16"></div>
                           </div>
-                          <Button
-                            variant={community.isJoined ? "outline" : "default"}
-                            size="sm"
-                            onClick={() => handleJoinCommunity(community.id)}
-                            className={community.isJoined ? "text-green-600 border-green-600" : ""}
-                          >
-                            {community.isJoined ? "Joined" : "Join"}
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <CardDescription className="text-sm leading-relaxed">
-                          {community.description}
-                        </CardDescription>
-                        
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4" />
-                            <span>{community.members.toLocaleString()} members</span>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredCommunities.map((community) => (
+                      <Card key={community.community_id} className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <CardTitle className="text-lg">{community.name}</CardTitle>
+                              <Badge variant="secondary" className="text-xs">
+                                Community
+                              </Badge>
+                              {community.creator_username && (
+                                <p className="text-xs text-muted-foreground">
+                                  Created by u/{community.creator_username}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleJoinCommunity(community.community_id)}
+                            >
+                              Join
+                            </Button>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <MessageSquare className="h-4 w-4" />
-                            <span>{community.posts.toLocaleString()} posts</span>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <CardDescription className="text-sm leading-relaxed">
+                            {community.description || "A supportive community for meaningful discussions."}
+                          </CardDescription>
+                          
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Users className="h-4 w-4" />
+                              <span>0 members</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MessageSquare className="h-4 w-4" />
+                              <span>0 posts</span>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex flex-wrap gap-1">
-                          {community.tags.slice(0, 3).map((tag, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              #{tag}
-                            </Badge>
-                          ))}
-                          {community.tags.length > 3 && (
+                          <div className="flex flex-wrap gap-1">
                             <Badge variant="outline" className="text-xs">
-                              +{community.tags.length - 3} more
+                              #{community.slug}
                             </Badge>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
 
                 {filteredCommunities.length === 0 && (
                   <div className="text-center py-12">
