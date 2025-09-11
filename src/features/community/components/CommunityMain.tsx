@@ -12,13 +12,76 @@ interface CommunityMainProps {
   disableAnimations?: boolean;
 }
 
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  isAnonymous: boolean;
+  timeAgo: string;
+  upvotes: number;
+  comments: number;
+  tags: string[];
+  community: string;
+  created_at?: string;
+  is_posted_anonymously?: boolean;
+  author_id?: number;
+  community_id?: number;
+}
+
 const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
-  const [isLoading, setIsLoading] = useState(false);
-  const [filteredPosts, setFilteredPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+
+  // Fetch posts from backend
+  const fetchPosts = async () => {
+    try {
+      setIsLoading(true);
+      // For now, we'll use the journaling endpoint as a fallback until we have a posts listing endpoint
+      const response = await fetch('/api/journaling/');
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          // Transform backend data to match our Post interface
+          const transformedPosts = data.data.map((post: any) => ({
+            id: post.id,
+            title: post.title,
+            content: post.content,
+            author: post.isAnonymous ? "Anonymous" : (post.author || "User"),
+            isAnonymous: post.isAnonymous || false,
+            timeAgo: post.timeAgo || "just now",
+            upvotes: post.upvotes || 0,
+            comments: post.comments || 0,
+            tags: post.tags || [],
+            community: post.community || "r/Community",
+            created_at: post.createdAt
+          }));
+          setPosts(transformedPosts);
+        }
+      } else {
+        console.error('Failed to fetch posts');
+        // Fallback to empty array if fetch fails
+        setPosts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      // Fallback to empty array if fetch fails
+      setPosts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load posts on component mount
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
   const handleShareStory = () => {
     if (onOpenCreatePost) {
@@ -28,6 +91,16 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
     setIsCreatePostOpen(true);
   };
 
+  const handlePostCreated = () => {
+    // Refresh posts when a new post is created
+    fetchPosts();
+    toast({
+      title: "Post Created Successfully!",
+      description: "Your post is now visible in the community feed.",
+      duration: 3000,
+    });
+  };
+
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setIsLoading(true);
@@ -35,73 +108,21 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
     setTimeout(() => setIsLoading(false), 300);
   };
 
-  // Mock data for community posts with dynamic content
-  const allPosts = [
-    {
-      id: "1",
-      title: "Finding peace in small moments",
-      content: "Today I realized that happiness doesn't always come from big achievements. Sometimes it's found in the quiet moments - like watching the sunrise with my coffee, hearing a favorite song on the radio, or simply taking a deep breath. These little pockets of peace have become my anchors during difficult times. I'm learning to notice them more and hold onto their warmth when anxiety creeps in.",
-      author: "Sarah M.",
-      isAnonymous: false,
-      timeAgo: "2 hours ago",
-      upvotes: 24,
-      comments: 8,
-      tags: ["mindfulness", "gratitude", "peace"],
-      community: "r/Mindfulness"
-    },
-    {
-      id: "2",
-      title: "The weight of perfectionism",
-      content: "I've been struggling with the constant need to be perfect in everything I do. It's exhausting to live with this voice that tells me nothing I do is ever good enough. Today my therapist helped me realize that perfectionism isn't about high standards - it's about fear. Fear of judgment, fear of failure, fear of not being worthy of love. I'm working on showing myself the same compassion I'd show a friend.",
-      author: "Anonymous",
-      isAnonymous: true,
-      timeAgo: "4 hours ago",
-      upvotes: 67,
-      comments: 23,
-      tags: ["perfectionism", "therapy", "self-compassion"],
-      community: "r/Therapy"
-    },
-    {
-      id: "3",
-      title: "Celebrating small wins in depression recovery",
-      content: "It might not seem like much, but I took a shower, made my bed, and even went for a short walk today. A month ago, getting out of bed felt impossible. Recovery isn't linear, and some days are still really hard, but I'm learning to celebrate these moments when I take care of myself. To anyone else fighting this battle - you're not alone, and every small step counts.",
-      author: "Alex K.",
-      isAnonymous: false,
-      timeAgo: "6 hours ago",
-      upvotes: 156,
-      comments: 42,
-      tags: ["depression", "recovery", "self-care", "progress"],
-      community: "r/DepressionSupport"
-    },
-    {
-      id: "4",
-      title: "Learning to set boundaries",
-      content: "I used to think saying 'no' made me a bad person. I would overcommit, burn out, and then resent everyone around me. This week, I practiced setting boundaries with family and friends. It felt scary at first, but I'm starting to see that healthy boundaries actually improve my relationships. People who truly care about me respect my limits.",
-      author: "Jordan R.",
-      isAnonymous: false,
-      timeAgo: "8 hours ago",
-      upvotes: 89,
-      comments: 31,
-      tags: ["boundaries", "relationships", "self-respect"],
-      community: "r/Relationships"
-    }
-  ];
-
   // Filter posts based on search term
   const getFilteredPosts = () => {
-    if (!searchTerm) return allPosts;
-    return allPosts.filter(post => 
+    if (!searchTerm) return posts;
+    return posts.filter(post => 
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   };
 
-  const posts = getFilteredPosts();
+  const displayPosts = getFilteredPosts();
 
   useEffect(() => {
-    setFilteredPosts(posts);
-  }, [searchTerm, activeTab]);
+    setFilteredPosts(displayPosts);
+  }, [searchTerm, activeTab, posts]);
 
   return (
     <section className="space-y-8">
@@ -155,7 +176,8 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
         {!onOpenCreatePost && (
           <RedditStylePostEditor 
             isOpen={isCreatePostOpen} 
-            onClose={() => setIsCreatePostOpen(false)} 
+            onClose={() => setIsCreatePostOpen(false)}
+            onPostCreated={handlePostCreated}
           />
         )}
 
@@ -185,8 +207,8 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
                   <div key={i} className="h-64 bg-muted/50 rounded-lg animate-pulse" />
                 ))}
               </div>
-            ) : posts.length > 0 ? (
-              posts.map((post, index) => (
+            ) : displayPosts.length > 0 ? (
+              displayPosts.map((post, index) => (
                 <div 
                   key={post.id} 
                   className={disableAnimations ? '' : 'animate-fade-in'}
@@ -204,7 +226,10 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No trending posts right now</p>
+                <p className="text-muted-foreground">No posts available yet. Be the first to share!</p>
+                <Button variant="therapeutic" onClick={handleShareStory} className="mt-4">
+                  Create First Post
+                </Button>
               </div>
             )}
           </TabsContent>
@@ -216,8 +241,8 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
                   <div key={i} className="h-64 bg-muted/50 rounded-lg animate-pulse" />
                 ))}
               </div>
-            ) : posts.length > 0 ? (
-              posts.slice().reverse().map((post, index) => (
+            ) : displayPosts.length > 0 ? (
+              displayPosts.slice().reverse().map((post, index) => (
                 <div 
                   key={post.id} 
                   className={disableAnimations ? '' : 'animate-fade-in'}
@@ -229,6 +254,9 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations }: CommunityMainPro
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No recent posts available</p>
+                <Button variant="therapeutic" onClick={handleShareStory} className="mt-4">
+                  Create First Post
+                </Button>
               </div>
             )}
           </TabsContent>
