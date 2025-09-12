@@ -6,6 +6,7 @@ const {
   getAllCommunities,
   joinCommunity,
   getJoinedCommunities,
+  getCommunityById,
 } = require('./community.controller');
 const authMiddleware = require('../middleware/auth');
 
@@ -14,6 +15,9 @@ const router = Router();
 // --- PUBLIC ROUTE ---
 // GET /api/communities -> Lists all communities
 router.get('/', getAllCommunities);
+
+// GET /api/community/:communityId -> Gets a specific community by ID
+router.get('/:communityId', getCommunityById);
 
 // --- PROTECTED ROUTES ---
 // POST /api/communities/createCommunity -> Creates a new community

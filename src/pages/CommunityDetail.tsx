@@ -36,12 +36,18 @@ const CommunityDetail = () => {
     
     try {
       setIsLoading(true);
+      console.log('Fetching community details for ID:', communityId);
       const response = await fetch(`/api/community/${communityId}`);
+      console.log('Community detail response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
+        console.log('Community detail data:', data);
         setCommunity(data);
       } else if (response.status === 404) {
+        console.error('Community not found - 404');
+        const errorData = await response.json();
+        console.error('404 Error details:', errorData);
         toast({
           title: "Community Not Found",
           description: "The community you're looking for doesn't exist.",
@@ -50,6 +56,9 @@ const CommunityDetail = () => {
         });
         navigate('/explore');
       } else {
+        console.error('Failed to fetch community, status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
         throw new Error('Failed to fetch community');
       }
     } catch (error) {
