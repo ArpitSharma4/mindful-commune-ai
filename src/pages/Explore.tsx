@@ -241,35 +241,54 @@ const Explore = () => {
                   </div>
                 </div>
                 {/* Joined Communities Section */}
-                {!isLoadingJoined && joinedCommunitiesData.length > 0 && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="h-6 w-6 text-therapeutic" />
-                        <h2 className="text-2xl font-bold">Your Communities</h2>
-                        <Badge variant="secondary" className="text-sm">
-                          {joinedCommunitiesData.length}
-                        </Badge>
-                      </div>
-                      {joinedCommunitiesData.length > 3 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowAllJoined(!showAllJoined)}
-                          className="text-muted-foreground hover:text-foreground"
-                        >
-                          {showAllJoined ? (
-                            <>
-                              Show Less <ChevronUp className="h-4 w-4 ml-1" />
-                            </>
-                          ) : (
-                            <>
-                              Show More ({joinedCommunitiesData.length - 3}) <ChevronDown className="h-4 w-4 ml-1" />
-                            </>
-                          )}
-                        </Button>
-                      )}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <BookOpen className="h-6 w-6 text-therapeutic" />
+                      <h2 className="text-2xl font-bold">Your Communities</h2>
+                      <Badge variant="secondary" className="text-sm">
+                        {joinedCommunitiesData.length}
+                      </Badge>
                     </div>
+                    {joinedCommunitiesData.length > 3 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowAllJoined(!showAllJoined)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        {showAllJoined ? (
+                          <>
+                            Show Less <ChevronUp className="h-4 w-4 ml-1" />
+                          </>
+                        ) : (
+                          <>
+                            Show More ({joinedCommunitiesData.length - 3}) <ChevronDown className="h-4 w-4 ml-1" />
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {isLoadingJoined ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {[1, 2, 3].map((i) => (
+                        <Card key={i} className="animate-pulse">
+                          <CardHeader className="pb-3">
+                            <div className="h-6 bg-muted rounded w-3/4"></div>
+                            <div className="h-4 bg-muted rounded w-1/2 mt-2"></div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="h-16 bg-muted rounded"></div>
+                            <div className="flex gap-4">
+                              <div className="h-4 bg-muted rounded w-20"></div>
+                              <div className="h-4 bg-muted rounded w-16"></div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : joinedCommunitiesData.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {displayedJoinedCommunities.map((community) => (
                         <Card 
@@ -316,8 +335,19 @@ const Explore = () => {
                         </Card>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-center py-8 border-2 border-dashed border-muted rounded-lg">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-2">No communities joined yet</p>
+                      <p className="text-sm text-muted-foreground">
+                        {localStorage.getItem('authToken') ? 
+                          "Join communities below to see them here!" : 
+                          "Please log in to join communities"
+                        }
+                      </p>
+                    </div>
+                  )}
+                </div>
                 {/* All Communities Section */}
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
