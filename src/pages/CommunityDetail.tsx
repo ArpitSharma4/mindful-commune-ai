@@ -209,13 +209,11 @@ const CommunityDetail = () => {
   };
 
   const handleCreatePost = () => {
-    // Navigate to Communities page with this community pre-selected for posting
-    navigate('/communities', { 
-      state: { 
-        openCreatePost: true, 
-        preSelectedCommunityId: communityId,
-        preSelectedCommunityName: community?.name 
-      } 
+    // Navigate to create post or open modal - you can implement this later
+    toast({
+      title: "Create Post",
+      description: "Post creation functionality will be implemented.",
+      duration: 3000,
     });
   };
 

@@ -11,18 +11,9 @@ interface RedditStylePostEditorProps {
   onClose: () => void;
   onPostCreated?: () => void;
   communityId?: string | number;
-  preSelectedCommunityId?: string | number;
-  preSelectedCommunityName?: string;
 }
 
-const RedditStylePostEditor = ({ 
-  isOpen, 
-  onClose, 
-  onPostCreated, 
-  communityId, 
-  preSelectedCommunityId, 
-  preSelectedCommunityName 
-}: RedditStylePostEditorProps) => {
+const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated, communityId }: RedditStylePostEditorProps) => {
   const { toast } = useToast();
   const titleInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,35 +37,21 @@ const RedditStylePostEditor = ({
   const fetchCommunities = async () => {
     try {
       setIsLoadingCommunities(true);
-      console.log('Fetching communities for post editor...');
       const response = await fetch('/api/community/');
-      console.log('Communities response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Fetched communities:', data);
         setCommunities(data);
         
-        // If preSelectedCommunityId is provided (from community detail page), pre-select it
-        if (preSelectedCommunityId && data.length > 0) {
-          const targetCommunity = data.find((c: any) => c.community_id == preSelectedCommunityId);
-          if (targetCommunity) {
-            console.log('Pre-selecting specific community:', targetCommunity);
-            setFormData(prev => ({ ...prev, community: targetCommunity.slug }));
-          }
-        }
-        // Otherwise, if communityId prop is provided, pre-select that community
-        else if (communityId && data.length > 0) {
+        // If communityId prop is provided, pre-select that community
+        if (communityId && data.length > 0) {
           const targetCommunity = data.find((c: any) => c.community_id == communityId);
           if (targetCommunity) {
-            console.log('Pre-selecting community:', targetCommunity);
             setFormData(prev => ({ ...prev, community: targetCommunity.slug }));
           }
         }
       } else {
-        console.error('Failed to fetch communities for post editor');
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
+        console.error('Failed to fetch communities');
       }
     } catch (error) {
       console.error('Error fetching communities:', error);
@@ -528,45 +505,29 @@ const RedditStylePostEditor = ({
           {/* Community Selection */}
           <div className="space-y-2">
             <Label htmlFor="community" className="text-sm font-medium">
-              {preSelectedCommunityId ? `Posting to r/${preSelectedCommunityName}` : "Select a community *"}
+              Select a community *
             </Label>
-            {preSelectedCommunityId ? (
-              // Show selected community as read-only when coming from specific community
-              <div className="bg-muted/50 border border-muted rounded-full h-11 px-4 flex items-center text-sm">
-                <span className="font-medium">r/{preSelectedCommunityName}</span>
-                <span className="ml-2 text-xs text-muted-foreground">
-                  (Selected from community page)
-                </span>
-              </div>
-            ) : (
-              <Select
-                value={formData.community}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, community: value }))}
-                disabled={isLoadingCommunities}
-              >
-                <SelectTrigger className="bg-muted/50 border-muted focus:border-primary rounded-full h-11 px-4 text-sm">
-                  <SelectValue placeholder={isLoadingCommunities ? "Loading communities..." : "Choose a community"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {communities.length > 0 ? (
-                    communities.map((community: any) => (
-                      <SelectItem key={community.community_id} value={community.slug}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">r/{community.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {community.description || "A supportive community"}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="" disabled>
-                      {isLoadingCommunities ? "Loading communities..." : "No communities available"}
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            )}
+            <Select
+              value={formData.community}
+              onValueChange={(value) => handleInputChange("community", value)}
+              disabled={isLoadingCommunities}
+            >
+              <SelectTrigger className="bg-muted/50 border-muted focus:border-primary rounded-full h-11 px-4 text-sm">
+                <SelectValue placeholder={isLoadingCommunities ? "Loading communities..." : "Choose a community"} />
+              </SelectTrigger>
+              <SelectContent>
+                {communities.map((community) => (
+                  <SelectItem key={community.community_id} value={community.slug}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">r/{community.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {community.description || "A supportive community"}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Title Input */}
