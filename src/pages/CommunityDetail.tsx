@@ -273,7 +273,7 @@ const CommunityDetail = () => {
             )}
             
             {/* Main Content */}
-            <div className="w-full max-w-screen-xl mx-auto space-y-8">
+            <div className="w-full max-w-4xl mx-auto space-y-8">
               {/* Back Button */}
               <Button 
                 variant="ghost" 
@@ -332,26 +332,6 @@ const CommunityDetail = () => {
                       #{community.slug}
                     </Badge>
                   </div>
-                </CardContent>
-              </Card>
-              {/* Create Post Content Area */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">Share with the Community</CardTitle>
-                  <CardDescription>
-                    Create a new post to share your thoughts, ask questions, or start a discussion.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    variant="therapeutic"
-                    size="lg"
-                    onClick={handleCreatePost}
-                    className="w-full shadow-therapeutic"
-                  >
-                    <Plus className="h-5 w-5 mr-2" />
-                    Create New Post
-                  </Button>
                 </CardContent>
               </Card>
             </div>

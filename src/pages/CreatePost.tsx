@@ -273,7 +273,7 @@ const CreatePost = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen">
       <Header />
       
       <div className="w-full px-4 py-12">
