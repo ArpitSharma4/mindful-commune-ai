@@ -11,9 +11,18 @@ interface RedditStylePostEditorProps {
   onClose: () => void;
   onPostCreated?: () => void;
   communityId?: string | number;
+  preSelectedCommunityId?: string | number;
+  preSelectedCommunityName?: string;
 }
 
-const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated, communityId }: RedditStylePostEditorProps) => {
+const RedditStylePostEditor = ({ 
+  isOpen, 
+  onClose, 
+  onPostCreated, 
+  communityId, 
+  preSelectedCommunityId, 
+  preSelectedCommunityName 
+}: RedditStylePostEditorProps) => {
   const { toast } = useToast();
   const titleInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -505,29 +514,45 @@ const RedditStylePostEditor = ({ isOpen, onClose, onPostCreated, communityId }: 
           {/* Community Selection */}
           <div className="space-y-2">
             <Label htmlFor="community" className="text-sm font-medium">
-              Select a community *
+              {preSelectedCommunityId ? `Posting to r/${preSelectedCommunityName}` : "Select a community *"}
             </Label>
-            <Select
-              value={formData.community}
-              onValueChange={(value) => handleInputChange("community", value)}
-              disabled={isLoadingCommunities}
-            >
-              <SelectTrigger className="bg-muted/50 border-muted focus:border-primary rounded-full h-11 px-4 text-sm">
-                <SelectValue placeholder={isLoadingCommunities ? "Loading communities..." : "Choose a community"} />
-              </SelectTrigger>
-              <SelectContent>
-                {communities.map((community) => (
-                  <SelectItem key={community.community_id} value={community.slug}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">r/{community.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {community.description || "A supportive community"}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {preSelectedCommunityId ? (
+              // Show selected community as read-only when coming from specific community
+              <div className="bg-muted/50 border border-muted rounded-full h-11 px-4 flex items-center text-sm">
+                <span className="font-medium">r/{preSelectedCommunityName}</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  (Selected from community page)
+                </span>
+              </div>
+            ) : (
+              <Select
+                value={formData.community}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, community: value }))}
+                disabled={isLoadingCommunities}
+              >
+                <SelectTrigger className="bg-muted/50 border-muted focus:border-primary rounded-full h-11 px-4 text-sm">
+                  <SelectValue placeholder={isLoadingCommunities ? "Loading communities..." : "Choose a community"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {communities.length > 0 ? (
+                    communities.map((community: Community) => (
+                      <SelectItem key={community.community_id} value={community.slug}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">r/{community.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {community.description || "A supportive community"}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>
+                      {isLoadingCommunities ? "Loading communities..." : "No communities available"}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Title Input */}
