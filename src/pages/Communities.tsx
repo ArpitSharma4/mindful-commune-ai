@@ -85,16 +85,24 @@ const Communities = () => {
   const fetchJoinedCommunities = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      if (!token) return;
+      if (!token) {
+        console.log('No auth token found, clearing joined communities');
+        setJoinedCommunities(new Set());
+        return;
+      }
       
+      console.log('Fetching joined communities with token');
       const response = await fetch('/api/communities/joined', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
+      console.log('Joined communities response status:', response.status);
+      
       if (response.ok) {
         const joinedData = await response.json();
+        console.log('Joined communities data:', joinedData);
         const joinedIds = new Set();
         joinedData.forEach(community => {
           const id = community.community_id;
@@ -102,17 +110,39 @@ const Communities = () => {
           joinedIds.add(String(id));
           joinedIds.add(Number(id));
         });
+        console.log('Setting joined communities set:', joinedIds);
         setJoinedCommunities(joinedIds);
+      } else {
+        console.log('Failed to fetch joined communities, clearing set');
+        setJoinedCommunities(new Set());
       }
     } catch (error) {
       console.error('Error fetching joined communities:', error);
+      setJoinedCommunities(new Set());
     }
   };
 
   // Load communities on component mount
   useEffect(() => {
+    console.log('Communities component mounted, fetching data...');
     fetchAllCommunities();
     fetchJoinedCommunities();
+  }, []);
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const handleAuthChange = () => {
+      console.log('Auth state changed, refetching joined communities');
+      fetchJoinedCommunities();
+    };
+
+    window.addEventListener('authStateChanged', handleAuthChange);
+    window.addEventListener('storage', handleAuthChange);
+
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthChange);
+      window.removeEventListener('storage', handleAuthChange);
+    };
   }, []);
 
   // Handle joining a community
@@ -190,6 +220,8 @@ const Communities = () => {
     const isJoined = joinedCommunities.has(communityId) || 
                      joinedCommunities.has(String(communityId)) || 
                      joinedCommunities.has(Number(communityId));
+    
+    console.log(`Community ${community.name} (ID: ${communityId}): isJoined=${isJoined}, matchesSearch=${matchesSearch}`);
     
     return matchesSearch && !isJoined;
   });

@@ -54,6 +54,7 @@ const createCommunity = async (req, res) => {
  */
 const getAllCommunities = async (req, res) => {
   try {
+    console.log('Fetching all communities');
     // REFACTORED QUERY: Using correlated subqueries for counts. This is more consistent
     // with getCommunityById and can be more efficient.
     const allCommunitiesQuery = `
@@ -75,6 +76,8 @@ const getAllCommunities = async (req, res) => {
       community.post_count = parseInt(community.post_count, 10);
     });
 
+    console.log('Found communities:', communities.length);
+    console.log('Community IDs:', communities.map(c => c.community_id));
     res.status(200).json(communities);
   } catch (error) {
     console.error('Error fetching all communities:', error);
@@ -122,6 +125,8 @@ const getCommunityById = async (req, res) => {
 const getJoinedCommunities = async (req, res) => {
   try {
     const userId = req.user.userId;
+    console.log('Fetching joined communities for user ID:', userId);
+    
     const joinedCommunitiesQuery = `
       SELECT c.*, u.username AS creator_username
       FROM communities c
@@ -131,6 +136,9 @@ const getJoinedCommunities = async (req, res) => {
       ORDER BY cm.joined_at DESC;
     `;
     const joinedCommunities = await pool.query(joinedCommunitiesQuery, [userId]);
+    console.log('Found joined communities:', joinedCommunities.rows.length);
+    console.log('Joined community IDs:', joinedCommunities.rows.map(c => c.community_id));
+    
     res.status(200).json(joinedCommunities.rows);
   } catch (error) {
     console.error('Error fetching joined communities:', error);
