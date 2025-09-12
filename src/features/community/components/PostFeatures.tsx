@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronUp, ChevronDown, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import CommentSection from "@/components/CommentSection";
 
 interface JournalPostProps {
   post_id?: string;
@@ -57,7 +58,7 @@ const JournalPost = ({
   const authorName = is_posted_anonymously ? "Anonymous" : (author_username || author);
   const isAnon = is_posted_anonymously ?? isAnonymous ?? false;
   const voteCount = vote_score ?? initialUpvotes ?? 0;
-  const commentCount = comment_count ?? comments ?? 0;
+  const initialCommentCount = comment_count ?? comments ?? 0;
   const mediaSource = media_url || imageUrl;
   
   // Process image URL to ensure it's properly formatted
@@ -69,6 +70,7 @@ const JournalPost = ({
   ) : null;
 
   const [currentVoteScore, setCurrentVoteScore] = useState(voteCount);
+  const [currentCommentCount, setCurrentCommentCount] = useState(initialCommentCount);
   const [userVote, setUserVote] = useState<1 | -1 | null>(null); 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -154,6 +156,10 @@ const JournalPost = ({
     } finally {
       setIsVoting(false);
     }
+  };
+
+  const handleCommentCountChange = (newCount: number) => {
+    setCurrentCommentCount(newCount);
   };
 
   const handleComment = () => {
@@ -316,7 +322,7 @@ const JournalPost = ({
           <div className="flex gap-4">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105" onClick={handleComment}>
               <MessageCircle className="h-4 w-4 mr-2 transition-transform duration-200 hover:rotate-12" />
-              {commentCount} comments
+              {currentCommentCount} comments
             </Button>
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105" onClick={handleShare}>
               <Share2 className="h-4 w-4 mr-2 transition-transform duration-200 hover:rotate-12" />
@@ -325,6 +331,17 @@ const JournalPost = ({
           </div>
         </div>
       </CardFooter>
+      
+      {/* Comment Section */}
+      {postId && (
+        <div className="px-6 pb-6">
+          <CommentSection 
+            postId={postId} 
+            commentCount={currentCommentCount}
+            onCommentCountChange={handleCommentCountChange}
+          />
+        </div>
+      )}
     </Card>
   );
 };
