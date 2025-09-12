@@ -24,6 +24,7 @@ const createComment = async (req, res) => {
 const getCommentsByPost = async (req, res) => {
   try {
     const { postId } = req.params;
+    console.log(`[DEBUG] Fetching comments for postId: ${postId}`);
     
     // Get all comments for the post with author information and vote scores
     const commentsQuery = `
@@ -45,8 +46,10 @@ const getCommentsByPost = async (req, res) => {
       ORDER BY c.created_at ASC;
     `;
 
+    console.log(`[DEBUG] Executing query with postId: ${postId}`);
     const result = await pool.query(commentsQuery, [postId]);
     const comments = result.rows;
+    console.log(`[DEBUG] Raw comments from DB:`, comments.length, comments);
 
     // Process anonymous comments
     comments.forEach(comment => {
@@ -81,6 +84,8 @@ const getCommentsByPost = async (req, res) => {
       }
     });
 
+    console.log(`[DEBUG] Processed comments - Root comments:`, rootComments.length);
+    console.log(`[DEBUG] Final response:`, rootComments);
     res.status(200).json(rootComments);
 
   } catch (error) {

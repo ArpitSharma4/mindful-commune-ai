@@ -42,16 +42,34 @@ const CommentSection = ({ postId, commentCount, onCommentCountChange }: CommentS
       console.log(`Fetching comments for post ${postId}`);
       
       const response = await fetch(`/api/posts/${postId}/comments`);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
       
       if (response.ok) {
         const data = await response.json();
         console.log('Comments data received:', data);
+        console.log('Number of comments:', data.length);
         setComments(data);
       } else {
         console.error('Failed to fetch comments, status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        
+        toast({
+          title: "Failed to Load Comments",
+          description: `Server returned ${response.status}. ${errorText}`,
+          variant: "destructive",
+          duration: 5000,
+        });
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
+      toast({
+        title: "Network Error",
+        description: "Unable to connect to the server to load comments.",
+        variant: "destructive",
+        duration: 5000,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -433,9 +451,23 @@ const CommentSection = ({ postId, commentCount, onCommentCountChange }: CommentS
   // Fetch comments when expanded
   useEffect(() => {
     if (isExpanded && comments.length === 0) {
+      console.log('[DEBUG] CommentSection - postId:', postId, 'type:', typeof postId);
+      console.log('[DEBUG] CommentSection - commentCount:', commentCount);
+      
+      if (!postId) {
+        console.error('[DEBUG] No postId provided to CommentSection');
+        toast({
+          title: "Error",
+          description: "No post ID available for loading comments.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        return;
+      }
+      
       fetchComments();
     }
-  }, [isExpanded]);
+  }, [isExpanded, postId]);
 
   return (
     <div className="space-y-4">
