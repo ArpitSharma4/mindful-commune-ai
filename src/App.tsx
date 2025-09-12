@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Communities from "./pages/Communities";
 import Explore from "./pages/Explore";
+import CommunityDetail from "./pages/CommunityDetail";
 import Settings from "./components/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/communities" element={<Communities />} />
           <Route path="/explore" element={<Explore />} />
+          <Route path="/community/:communityId" element={<CommunityDetail />} />
           <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

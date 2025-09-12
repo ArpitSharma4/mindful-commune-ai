@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Users, MessageSquare, Heart, TrendingUp, Search, Plus, Leaf, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import CreateCommunityModal from "@/components/CreateCommunityModal";
 
 const Explore = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isCreateCommunityOpen, setIsCreateCommunityOpen] = useState(false);
@@ -172,6 +174,10 @@ const Explore = () => {
     });
   };
 
+  const handleCommunityClick = (communityId: string) => {
+    navigate(`/community/${communityId}`);
+  };
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -269,7 +275,11 @@ const Explore = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {displayedJoinedCommunities.map((community) => (
-                        <Card key={`joined-${community.community_id}`} className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-therapeutic/20">
+                        <Card 
+                          key={`joined-${community.community_id}`} 
+                          className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-therapeutic/20 cursor-pointer"
+                          onClick={() => handleCommunityClick(community.community_id)}
+                        >
                           <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
                               <div className="space-y-1">
@@ -342,7 +352,11 @@ const Explore = () => {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredCommunities.map((community) => (
-                        <Card key={community.community_id} className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                        <Card 
+                          key={community.community_id} 
+                          className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                          onClick={() => handleCommunityClick(community.community_id)}
+                        >
                           <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
                               <div className="space-y-1">
@@ -359,7 +373,10 @@ const Explore = () => {
                               <Button
                                 variant={joinedCommunities.has(community.community_id) ? "default" : "primary"}
                                 size="sm"
-                                onClick={() => handleJoinCommunity(community.community_id)}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent card click when clicking join button
+                                  handleJoinCommunity(community.community_id);
+                                }}
                                 disabled={joinedCommunities.has(community.community_id)}
                               >
                                 {joinedCommunities.has(community.community_id) ? "Joined" : "Join"}
