@@ -1,21 +1,24 @@
 const { Router } = require('express');
-const { createComment } = require('./comments.controller');
+// 1. Import all three controller functions
+const { createComment, getCommentsByPost, voteOnComment } = require('./comments.controller');
 const authMiddleware = require('../middleware/auth');
 
-// Using { mergeParams: true } is the key to nested routing.
-// It allows this router to access URL parameters from its parent router
-// (in this case, we can get :postId from the posts router).
+// This router is nested, so it can access parent route parameters (like :postId)
 const router = Router({ mergeParams: true });
 
-// Defines the route for: POST /api/posts/:postId/comments
-// The path here is just '/' because the '/:postId/comments' part is handled
-// in the posts.route.js file where this router is used.
-//
-// This is a protected route, so only logged-in users can comment.
+// --- Routes for the collection of comments under a post ---
+// Full URL: POST /api/posts/:postId/comments (Create a comment)
 router.post('/', authMiddleware, createComment);
 
-// We will add the route for GETTING comments here later.
-// router.get('/', getCommentsByPost);
+// Full URL: GET /api/posts/:postId/comments (Get all comments for a post)
+router.get('/', getCommentsByPost);
+
+
+// --- Route for actions on a specific comment ---
+// 2. This is the new route for voting.
+// Full URL: POST /api/posts/:postId/comments/:commentId/vote
+router.post('/:commentId/vote', authMiddleware, voteOnComment);
+
 
 module.exports = router;
 
