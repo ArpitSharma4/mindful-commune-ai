@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
-import { PostFeatures, RedditStylePostEditor } from "@/features/community/components";
+import { PostFeatures } from "@/features/community/components";
 
 import { Button } from "@/components/ui/button";
 import { Leaf } from "lucide-react";
@@ -10,15 +10,14 @@ import JournalFeed from "@/features/community/components/CommunityMain";
 
 const Communities = () => {
   const location = useLocation();
-  const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [communityId, setCommunityId] = useState<number>(1);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Check for navigation state to pre-open post creation
   useEffect(() => {
-    if (location.state?.openCreatePost) {
-      setIsComposeOpen(true);
+    if (location.state?.preSelectedCommunityId) {
+      setCommunityId(location.state.preSelectedCommunityId);
     }
   }, [location.state]);
 
@@ -30,9 +29,7 @@ const Communities = () => {
         if (response.ok) {
           const communities = await response.json();
           if (communities.length > 0) {
-            // Use pre-selected community if available, otherwise use first community
-            const targetCommunityId = location.state?.preSelectedCommunityId || communities[0].community_id;
-            setCommunityId(targetCommunityId);
+            setCommunityId(communities[0].community_id);
           }
         }
       } catch (error) {
@@ -42,13 +39,7 @@ const Communities = () => {
     };
 
     fetchCommunities();
-  }, [location.state]);
-
-  const handlePostCreated = () => {
-    setIsComposeOpen(false);
-    // Trigger refresh of posts in CommunityMain
-    setRefreshTrigger(prev => prev + 1);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -81,21 +72,11 @@ const Communities = () => {
             )}
             {/* Main Content */}
             <div className="w-full max-w-screen-xl mx-auto">
-                {isComposeOpen ? (
-                  <RedditStylePostEditor
-                    isOpen={true}
-                    onClose={() => setIsComposeOpen(false)}
-                    onPostCreated={handlePostCreated}
-                    communityId={communityId}
-                  />
-                ) : (
-                  <JournalFeed 
-                    onOpenCreatePost={() => setIsComposeOpen(true)} 
-                    disableAnimations 
-                    communityId={communityId}
-                    key={refreshTrigger}
-                  />
-                )}
+              <JournalFeed 
+                disableAnimations 
+                communityId={communityId}
+                key={refreshTrigger}
+              />
             </div>
           </div>
         </div>

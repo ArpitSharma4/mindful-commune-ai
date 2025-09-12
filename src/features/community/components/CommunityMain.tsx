@@ -35,7 +35,7 @@ interface Post {
   community?: string;
 }
 
-const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = "1" }: CommunityMainProps) => {
+const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }: CommunityMainProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
@@ -43,21 +43,33 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = "1" 
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [communityName, setCommunityName] = useState<string>("Community");
+
+  // Fetch community details to get the name
+  const fetchCommunityDetails = async () => {
+    try {
+      const response = await fetch(`/api/community/${communityId}`);
+      if (response.ok) {
+        const communityData = await response.json();
+        setCommunityName(communityData.name);
+      }
+    } catch (error) {
+      console.error('Error fetching community details:', error);
+    }
+  };
 
   // Fetch posts from backend
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      console.log(`Fetching posts for community ID: ${communityId}`);
-      
       // Use the dynamic communityId prop
+      console.log('Fetching posts for community ID:', communityId);
       const response = await fetch(`/api/posts/in/${communityId}`);
-      console.log(`API response status: ${response.status}`);
+      console.log('Response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('API response data:', data);
-        
+        console.log('Fetched posts data:', data);
         if (Array.isArray(data)) {
           // Transform backend data to match our Post interface
           const transformedPosts = data.map((post: any) => ({
@@ -70,17 +82,18 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = "1" 
             upvotes: post.vote_score,
             comments: post.comment_count,
             tags: [], // Posts don't have tags in new schema
-            community: "r/Community"
+            community: `r/${communityName}`
           }));
           console.log('Transformed posts:', transformedPosts);
           setPosts(transformedPosts);
         } else {
-          console.warn('API response is not an array:', data);
+          console.log('Data is not an array:', data);
           setPosts([]);
         }
       } else {
-        const errorData = await response.text();
-        console.error('Failed to fetch posts:', response.status, errorData);
+        console.error('Failed to fetch posts, status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
         setPosts([]);
       }
     } catch (error) {
@@ -102,11 +115,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = "1" 
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
-
-  // Load posts on component mount and when communityId changes
-  useEffect(() => {
-    fetchPosts();
-  }, [communityId]);
 
   const handleShareStory = () => {
     if (onOpenCreatePost) {
@@ -161,6 +169,17 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = "1" 
   useEffect(() => {
     setFilteredPosts(displayPosts);
   }, [searchTerm, activeTab, posts]);
+
+  // Load community details and posts on component mount and when communityId changes
+  useEffect(() => {
+    fetchCommunityDetails();
+  }, [communityId]);
+
+  useEffect(() => {
+    if (communityName !== "Community") {
+      fetchPosts();
+    }
+  }, [communityId, communityName]);
 
   return (
     <section className="space-y-8">
