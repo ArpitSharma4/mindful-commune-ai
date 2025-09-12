@@ -162,13 +162,6 @@ const JournalPost = ({
     setCurrentCommentCount(newCount);
   };
 
-  const handleComment = () => {
-    toast({
-      title: "Comments",
-      description: "Opening comments section...",
-    });
-  };
-
   const handleShare = () => {
     toast({
       title: "Post shared! 🤝",
@@ -320,10 +313,6 @@ const JournalPost = ({
       <CardFooter className="px-6 py-4 border-t bg-muted/30 backdrop-blur-sm">
         <div className="flex justify-between items-center w-full">
           <div className="flex gap-4">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105" onClick={handleComment}>
-              <MessageCircle className="h-4 w-4 mr-2 transition-transform duration-200 hover:rotate-12" />
-              {currentCommentCount} comments
-            </Button>
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105" onClick={handleShare}>
               <Share2 className="h-4 w-4 mr-2 transition-transform duration-200 hover:rotate-12" />
               Share
