@@ -1,11 +1,11 @@
-import CommunityPost from "./PostFeatures";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { TrendingUp, Clock, Heart, Search, Filter } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Plus, TrendingUp, Clock, Leaf } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import PostFeatures from "./PostFeatures";
 interface CommunityMainProps {
   onOpenCreatePost?: () => void;
   disableAnimations?: boolean;
@@ -36,6 +36,7 @@ interface Post {
 const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, isGlobalFeed = false }: CommunityMainProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +46,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
   // Fetch community details to get the name
   const fetchCommunityDetails = async () => {
     try {
-      const response = await fetch(`/api/community/${communityId}`);
+      const response = await fetch(`/api/communities/${communityId}`);
       if (response.ok) {
         const communityData = await response.json();
         setCommunityName(communityData.name);
@@ -123,7 +124,13 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
       onOpenCreatePost();
       return;
     }
-    navigate('/create-post');
+    
+    // Navigate with appropriate state based on whether this is global feed or community
+    const navigationState = isGlobalFeed 
+      ? { fromGlobalFeed: true }
+      : { fromCommunity: communityId, preSelectedCommunityId: communityId };
+    
+    navigate('/create-post', { state: navigationState });
   };
   const handlePostCreated = () => {
     // Refresh posts when a new post is created
@@ -207,6 +214,24 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
     }
   };
   const displayPosts = getFilteredAndSortedPosts();
+  // Listen for navigation state changes to refresh posts after creation
+  useEffect(() => {
+    const state = location.state as { refreshPosts?: boolean; fromCreatePost?: boolean } | null;
+    console.log('Navigation state changed:', state);
+    if (state?.refreshPosts || state?.fromCreatePost) {
+      console.log('Refreshing posts after creation...', { isGlobalFeed, communityId });
+      setTimeout(() => {
+        if (isGlobalFeed) {
+          fetchPostsByTab(activeTab);
+        } else {
+          fetchPosts();
+        }
+      }, 100);
+      // Clear the state to prevent infinite refreshes
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   useEffect(() => {
     setFilteredPosts(displayPosts);
   }, [searchTerm, activeTab, posts]);
@@ -249,6 +274,18 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
           </p>
         </div>
 
+        {/* Create Post Button */}
+        <div className={`flex justify-center ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.6s' }}>
+          <Button 
+            variant="therapeutic" 
+            size="lg" 
+            className="shadow-therapeutic w-full sm:w-auto max-w-xs sm:max-w-none transition-all duration-300 hover:scale-105 hover:shadow-lg"
+            onClick={handleShareStory}
+          >
+            Create Post
+          </Button>
+        </div>
+
         {/* Feed Tabs */}
         <Tabs defaultValue="trending" className={`w-full ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.8s' }} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 backdrop-blur-sm">
@@ -281,7 +318,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
                   className={disableAnimations ? '' : 'animate-fade-in'}
                   style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                 >
-                  <CommunityPost {...post} disableAnimations={disableAnimations} />
+                  <PostFeatures {...post} disableAnimations={disableAnimations} />
                 </div>
               ))
             ) : searchTerm ? (
@@ -311,7 +348,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
                   className={disableAnimations ? '' : 'animate-fade-in'}
                   style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                 >
-                  <CommunityPost {...post} disableAnimations={disableAnimations} />
+                  <PostFeatures {...post} disableAnimations={disableAnimations} />
                 </div>
               ))
             ) : (

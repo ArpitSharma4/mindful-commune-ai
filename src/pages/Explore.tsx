@@ -25,7 +25,7 @@ const Explore = () => {
   const fetchCommunities = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/community/');
+      const response = await fetch('/api/communities');
       
       if (response.ok) {
         const data = await response.json();
@@ -68,7 +68,7 @@ const Explore = () => {
       setIsLoadingJoined(true);
       console.log('Making request to /api/community/joined');
       
-      const response = await fetch('/api/community/joined', {
+      const response = await fetch('/api/communities/joined', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -164,7 +164,7 @@ const Explore = () => {
         });
         return;
       }
-      const response = await fetch(`/api/community/${communityId}/join`, {
+      const response = await fetch(`/api/communities/${communityId}/join`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -208,8 +208,10 @@ const Explore = () => {
     setIsCreateCommunityOpen(true);
   };
   const handleCommunityCreated = (newCommunity: any) => {
-    // Add the new community to the top of the list
-    setCommunities(prev => [newCommunity, ...prev]);
+    console.log('New community created:', newCommunity);
+    
+    // Refresh the entire communities list using getAllCommunities API
+    fetchCommunities();
     
     toast({
       title: "Community Created! ",

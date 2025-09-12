@@ -51,20 +51,52 @@ const CreatePost = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Check for pre-selected community from navigation state
+  // Check for pre-selected community and source page from navigation state
+  const [sourceRoute, setSourceRoute] = useState<string>('/global-feed');
+  const [isFromCommunityPage, setIsFromCommunityPage] = useState<boolean>(false);
+  const [lockedCommunityName, setLockedCommunityName] = useState<string>('');
+  
   useEffect(() => {
-    const state = location.state as { preSelectedCommunityId?: string; preSelectedCommunityName?: string } | null;
+    const state = location.state as { 
+      preSelectedCommunityId?: string; 
+      preSelectedCommunityName?: string;
+      fromGlobalFeed?: boolean;
+      fromCommunity?: string;
+    } | null;
+    
+    console.log('CreatePost navigation state:', state);
+    
     if (state?.preSelectedCommunityId) {
+      console.log('Setting pre-selected community:', state.preSelectedCommunityId);
       setSelectedCommunity(state.preSelectedCommunityId);
     }
+    
+    // Check if coming from a community page to lock the community selection
+    if (state?.fromCommunity || (state?.preSelectedCommunityId && !state?.fromGlobalFeed)) {
+      console.log('Locking community selection:', state?.preSelectedCommunityName);
+      setIsFromCommunityPage(true);
+      setLockedCommunityName(state?.preSelectedCommunityName || '');
+    }
+    
+    // Determine where to redirect after post creation/cancellation
+    if (state?.fromGlobalFeed) {
+      setSourceRoute('/global-feed');
+    } else if (state?.fromCommunity) {
+      setSourceRoute(`/community/${state.fromCommunity}`);
+    } else if (state?.preSelectedCommunityId) {
+      // If we have a pre-selected community but no explicit source, assume it's from community page
+      setSourceRoute(`/community/${state.preSelectedCommunityId}`);
+    }
+    
+    console.log('Source route set to:', sourceRoute);
   }, [location.state]);
 
   // Fetch communities
   const fetchCommunities = async () => {
     try {
       setIsLoadingCommunities(true);
-      console.log('Fetching communities from /api/community/');
-      const response = await fetch('/api/community/');
+      console.log('Fetching communities from /api/communities');
+      const response = await fetch('/api/communities');
       
       console.log('Communities fetch response status:', response.status);
       
@@ -212,14 +244,14 @@ const CreatePost = () => {
       console.log('Post creation response data:', data);
 
       if (response.ok) {
-        console.log('Post created successfully, navigating to communities...');
+        console.log('Post created successfully, navigating back to source...');
         toast({
           title: "Post Created!",
           description: "Your post has been shared with the community.",
           duration: 3000,
         });
         
-        navigate('/communities', { state: { fromCreatePost: true } });
+        navigate(sourceRoute, { state: { fromCreatePost: true, refreshPosts: true } });
       } else {
         toast({
           title: "Failed to Create Post",
@@ -282,7 +314,7 @@ const CreatePost = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen">
       <Header />
       
       <div className="w-full px-4 py-12">
@@ -294,7 +326,7 @@ const CreatePost = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="fixed left-6 top-24 z-60 h-10 w-10 rounded-full bg-teal-500 hover:bg-teal-600 text-white shadow"
+              className="fixed left-6 top-24 z-60 h-10 w-10 rounded-full bg-therapeutic hover:bg-therapeutic/80 text-white shadow"
               aria-label="Open sidebar"
               onClick={() => setIsSidebarOpen(true)}
             >
@@ -311,240 +343,235 @@ const CreatePost = () => {
           )}
 
           {/* Main Content */}
-          <div className="w-full max-w-2xl mx-auto">
+          <div className="w-full max-w-4xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-teal-500 flex items-center justify-center">
-                  <Type className="h-4 w-4 text-white" />
-                </div>
-                <h1 className="text-xl font-semibold">Create post</h1>
-              </div>
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/communities')}
-                  className="text-slate-400 hover:text-white"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
+            <div className="text-center space-y-4 mb-8">
+              <h1 className="text-3xl md:text-4xl font-bold animate-fade-in">Create Post</h1>
+              <p className="text-lg text-muted-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                Share your thoughts, experiences, and connect with the community
+              </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Post as Section */}
-              <div className="space-y-3">
-                <Label className="text-sm text-slate-300">Post as</Label>
-                <div className="flex gap-2">
+            <div className="max-w-2xl mx-auto">
+              <form onSubmit={handleSubmit} className="space-y-6 bg-gradient-card p-6 rounded-lg shadow-therapeutic animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                {/* Post as Section */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Post as</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={!formData.isAnonymous ? "therapeutic" : "outline"}
+                      size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, isAnonymous: false }))}
+                      className="px-4 py-2 rounded-full text-sm transition-all duration-200"
+                    >
+                      Public
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={formData.isAnonymous ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, isAnonymous: true }))}
+                      className="px-4 py-2 rounded-full text-sm transition-all duration-200"
+                    >
+                      Anonymous
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.isAnonymous 
+                      ? "Your username will not be visible to other community members" 
+                      : "Your username will be visible to other community members"
+                    }
+                  </p>
+                </div>
+
+                {/* Community Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Select a community *</Label>
+                  <div className="space-y-2">
+                    <Select
+                      value={selectedCommunity}
+                      onValueChange={setSelectedCommunity}
+                      disabled={isLoadingCommunities}
+                    >
+                      <SelectTrigger className="bg-muted/50 border-border focus:border-primary transition-colors">
+                        <SelectValue placeholder="Choose a community" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {communities.length > 0 ? (
+                          communities.map((community) => (
+                            <SelectItem 
+                              key={community.community_id} 
+                              value={community.community_id}
+                            >
+                              r/{community.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-communities" disabled>
+                            No communities available
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {isLoadingCommunities && (
+                      <p className="text-xs text-muted-foreground">Loading communities...</p>
+                    )}
+                    {!isLoadingCommunities && communities.length === 0 && (
+                      <p className="text-xs text-muted-foreground">No communities found. Please create one first.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Title*</Label>
+                  <Input
+                    placeholder="What's on your mind?"
+                    value={formData.title}
+                    onChange={(e) => handleInputChange("title", e.target.value)}
+                    maxLength={300}
+                    className="bg-muted/50 border-border focus:border-primary transition-colors"
+                  />
+                  <div className="text-xs text-muted-foreground text-right">
+                    {formData.title.length}/300 characters
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Tags (optional)</Label>
+                  <Input
+                    placeholder="mindfulness, gratitude, peace (comma separated)"
+                    value={formData.tags}
+                    onChange={(e) => handleInputChange("tags", e.target.value)}
+                    className="bg-muted/50 border-border focus:border-primary transition-colors"
+                  />
+                  <p className="text-xs text-muted-foreground">Add relevant tags separated by commas</p>
+                </div>
+
+                {/* Formatting Toolbar */}
+                <div className="flex items-center gap-1 p-2 bg-muted/30 rounded-lg border border-border">
                   <Button
                     type="button"
-                    variant={!formData.isAnonymous ? "default" : "outline"}
+                    variant="ghost"
                     size="sm"
-                    onClick={() => setFormData(prev => ({ ...prev, isAnonymous: false }))}
-                    className={`px-4 py-2 rounded-full text-sm ${
-                      !formData.isAnonymous 
-                        ? 'bg-teal-500 text-white hover:bg-teal-600' 
-                        : 'bg-transparent border border-slate-600 text-slate-300 hover:bg-slate-800'
-                    }`}
+                    onClick={() => formatText('bold')}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
-                    Public
+                    <Bold className="h-4 w-4" />
                   </Button>
                   <Button
                     type="button"
-                    variant={formData.isAnonymous ? "default" : "outline"}
+                    variant="ghost"
                     size="sm"
-                    onClick={() => setFormData(prev => ({ ...prev, isAnonymous: true }))}
-                    className={`px-4 py-2 rounded-full text-sm ${
-                      formData.isAnonymous 
-                        ? 'bg-slate-600 text-white hover:bg-slate-700' 
-                        : 'bg-transparent border border-slate-600 text-slate-300 hover:bg-slate-800'
-                    }`}
+                    onClick={() => formatText('italic')}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
-                    Anonymous
+                    <Italic className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => formatText('strikethrough')}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  >
+                    <Strikethrough className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => formatText('code')}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  >
+                    <Code className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => formatText('quote')}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  >
+                    <Quote className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => formatText('link')}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => document.getElementById('image-upload')?.click()}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                  </Button>
+                  <div className="ml-auto">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs text-primary hover:text-primary/80"
+                    >
+                      Switch to Markdown Editor
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Content Textarea */}
+                <Textarea
+                  id="content-textarea"
+                  placeholder="Share your thoughts, experiences, or ask for support..."
+                  value={formData.content}
+                  onChange={(e) => handleInputChange("content", e.target.value)}
+                  rows={8}
+                  className="resize-none bg-muted/50 border-border focus:border-primary transition-colors"
+                />
+
+                {/* Hidden Image Upload */}
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+
+                {selectedFile && (
+                  <div className="text-sm text-muted-foreground">
+                    Selected image: {selectedFile.name}
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-3 pt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate(sourceRoute)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="therapeutic"
+                    disabled={isSubmitting}
+                    className="px-8 shadow-therapeutic"
+                  >
+                    {isSubmitting ? "Posting..." : "Post"}
                   </Button>
                 </div>
-                <p className="text-xs text-slate-400">
-                  {formData.isAnonymous 
-                    ? "Your username will not be visible to other community members" 
-                    : "Your username will be visible to other community members"
-                  }
-                </p>
-              </div>
-
-              {/* Community Selection */}
-              <div className="space-y-3">
-                <Label className="text-sm text-slate-300">Select a community *</Label>
-                <Select
-                  value={selectedCommunity}
-                  onValueChange={setSelectedCommunity}
-                  disabled={isLoadingCommunities}
-                >
-                  <SelectTrigger className="bg-slate-800 border-slate-600 text-white focus:border-teal-500">
-                    <SelectValue placeholder="Choose a community" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
-                    {communities.map((community) => (
-                      <SelectItem 
-                        key={community.community_id} 
-                        value={community.community_id}
-                        className="text-white hover:bg-slate-700"
-                      >
-                        r/{community.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Title */}
-              <div className="space-y-3">
-                <Label className="text-sm text-slate-300">Title*</Label>
-                <Input
-                  placeholder="What's on your mind?"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  maxLength={300}
-                  className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-400 focus:border-teal-500"
-                />
-                <div className="text-xs text-slate-400 text-right">
-                  {formData.title.length}/300 characters
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div className="space-y-3">
-                <Label className="text-sm text-slate-300">Tags (optional)</Label>
-                <Input
-                  placeholder="mindfulness, gratitude, peace (comma separated)"
-                  value={formData.tags}
-                  onChange={(e) => handleInputChange("tags", e.target.value)}
-                  className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-400 focus:border-teal-500"
-                />
-                <p className="text-xs text-slate-400">Add relevant tags separated by commas</p>
-              </div>
-
-              {/* Formatting Toolbar */}
-              <div className="flex items-center gap-1 p-2 bg-slate-800 rounded-lg border border-slate-600">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => formatText('bold')}
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
-                >
-                  <Bold className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => formatText('italic')}
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
-                >
-                  <Italic className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => formatText('strikethrough')}
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
-                >
-                  <Strikethrough className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => formatText('code')}
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
-                >
-                  <Code className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => formatText('quote')}
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
-                >
-                  <Quote className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => formatText('link')}
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
-                >
-                  <LinkIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => document.getElementById('image-upload')?.click()}
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
-                >
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
-                <div className="ml-auto">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-xs text-teal-400 hover:text-teal-300"
-                  >
-                    Switch to Markdown Editor
-                  </Button>
-                </div>
-              </div>
-
-              {/* Content Textarea */}
-              <Textarea
-                id="content-textarea"
-                placeholder="Share your thoughts, experiences, or ask for support..."
-                value={formData.content}
-                onChange={(e) => handleInputChange("content", e.target.value)}
-                rows={8}
-                className="resize-none bg-slate-800 border-slate-600 text-white placeholder:text-slate-400 focus:border-teal-500"
-              />
-
-              {/* Hidden Image Upload */}
-              <input
-                id="image-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-
-              {selectedFile && (
-                <div className="text-sm text-slate-400">
-                  Selected image: {selectedFile.name}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate('/communities')}
-                  disabled={isSubmitting}
-                  className="bg-transparent border-slate-600 text-slate-300 hover:bg-slate-800"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-8 bg-teal-500 hover:bg-teal-600 text-white"
-                >
-                  {isSubmitting ? "Posting..." : "Post"}
-                </Button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       </div>

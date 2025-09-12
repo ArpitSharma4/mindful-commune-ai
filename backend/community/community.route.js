@@ -1,6 +1,6 @@
 const { Router } = require('express');
 
-// Import all controller functions
+// Import all controller functions from the controller file
 const {
   createCommunity,
   getAllCommunities,
@@ -13,25 +13,36 @@ const authMiddleware = require('../middleware/auth');
 
 const router = Router();
 
-// --- PUBLIC ROUTE ---
+
+// --- PUBLIC ROUTES ---
+
 // GET /api/communities -> Lists all communities
 router.get('/', getAllCommunities);
 
-// GET /api/community/:communityId -> Gets a specific community by ID
-router.get('/:communityId', getCommunityById);
 
-// --- PROTECTED ROUTES ---
-// POST /api/communities/createCommunity -> Creates a new community
-router.post('/createCommunity', authMiddleware, createCommunity);
+// --- PROTECTED ROUTES (Specific paths first) ---
+// Specific string routes MUST be defined before dynamic routes with parameters.
 
-// GET /api/communities/joined -> Gets communities the user has joined
+// POST /api/communities -> Creates a new community (Protected)
+router.post('/', authMiddleware, createCommunity);
+
+// GET /api/communities/joined -> Gets communities the current user has joined (Protected)
 router.get('/joined', authMiddleware, getJoinedCommunities);
 
-// POST /api/communities/:communityId/join -> Joins a community
-// This is a dynamic route where ':communityId' is a URL parameter.
+
+// --- DYNAMIC ROUTES (ID-based, must be last) ---
+// These routes with a URL parameter like ':communityId' must be defined after
+// any specific routes to avoid conflicts.
+
+// GET /api/communities/:communityId -> Gets a specific community by ID (Public)
+router.get('/:communityId', getCommunityById);
+
+// POST /api/communities/:communityId/join -> Joins a community (Protected)
 router.post('/:communityId/join', authMiddleware, joinCommunity);
 
-// POST /api/communities/:communityId/leave -> Leaves a community
+// POST /api/communities/:communityId/leave -> Leaves a community (Protected)
 router.post('/:communityId/leave', authMiddleware, leaveCommunity);
 
+
 module.exports = router;
+

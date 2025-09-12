@@ -35,8 +35,8 @@ const Communities = () => {
   useEffect(() => {
     const fetchCommunities = async () => {
       try {
-        console.log('Fetching communities from /api/community/');
-        const response = await fetch('/api/community/');
+        console.log('Fetching communities from /api/communities');
+        const response = await fetch('/api/communities');
         console.log('Communities response status:', response.status);
         
         if (response.ok) {

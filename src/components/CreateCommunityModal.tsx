@@ -56,7 +56,7 @@ const CreateCommunityModal = ({ isOpen, onClose, onCommunityCreated }: CreateCom
         return;
       }
 
-      const response = await fetch('/api/community/createCommunity', {
+      const response = await fetch('/api/communities', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

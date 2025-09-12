@@ -37,7 +37,7 @@ app.use('/uploads', express.static(uploadsDir));
 // --- Main Routes ---
 // This section should only contain your top-level routes.
 app.use('/api/users', userRoutes);
-app.use('/api/community', communityRoutes); // Note: You probably mean /api/communities
+app.use('/api/communities', communityRoutes);
 app.use('/api/posts', postRoutes);
 
 // ... (rest of your error handling and app.listen code) ...

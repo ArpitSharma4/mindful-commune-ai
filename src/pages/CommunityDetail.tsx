@@ -34,7 +34,7 @@ const CommunityDetail = () => {
     try {
       setIsLoading(true);
       console.log('Fetching community details for ID:', communityId);
-      const response = await fetch(`/api/community/${communityId}`);
+      const response = await fetch(`/api/communities/${communityId}`);
       console.log('Community detail response status:', response.status);
       
       if (response.ok) {
@@ -75,7 +75,7 @@ const CommunityDetail = () => {
     const token = localStorage.getItem('authToken');
     if (!token || !communityId) return;
     try {
-      const response = await fetch('/api/community/joined', {
+      const response = await fetch('/api/communities/joined', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -106,7 +106,7 @@ const CommunityDetail = () => {
     if (!communityId) return;
     try {
       setIsJoining(true);
-      const response = await fetch(`/api/community/${communityId}/join`, {
+      const response = await fetch(`/api/communities/${communityId}/join`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -159,7 +159,7 @@ const CommunityDetail = () => {
     try {
       setIsJoining(true);
       // Note: You'll need to implement the leave endpoint in backend
-      const response = await fetch(`/api/community/${communityId}/leave`, {
+      const response = await fetch(`/api/communities/${communityId}/leave`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -200,7 +200,8 @@ const CommunityDetail = () => {
     navigate('/create-post', { 
       state: { 
         preSelectedCommunityId: community?.community_id,
-        preSelectedCommunityName: community?.name 
+        preSelectedCommunityName: community?.name,
+        fromCommunity: community?.community_id
       } 
     });
   };
