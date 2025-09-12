@@ -116,9 +116,59 @@ const getJoinedCommunities = async (req, res) => {
   }
 };
 
+const getCommunityById = async (req, res) => {
+  try {
+    // 1. Get the communityId from the URL parameters.
+    const { communityId } = req.params;
+
+    // 2. Query the database to get the specific community with creator info.
+    const communityQuery = `
+      SELECT c.*, u.username AS creator_username
+      FROM communities c
+      JOIN users u ON c.creator_id = u.user_id
+      WHERE c.community_id = $1;
+    `;
+    const communityResult = await pool.query(communityQuery, [communityId]);
+
+    if (communityResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Community not found.' });
+    }
+
+    // 3. Get member count for this community
+    const memberCountQuery = `
+      SELECT COUNT(*) as member_count
+      FROM community_members
+      WHERE community_id = $1;
+    `;
+    const memberCountResult = await pool.query(memberCountQuery, [communityId]);
+
+    // 4. Get post count for this community
+    const postCountQuery = `
+      SELECT COUNT(*) as post_count
+      FROM posts
+      WHERE community_id = $1;
+    `;
+    const postCountResult = await pool.query(postCountQuery, [communityId]);
+
+    // 5. Combine the data
+    const community = {
+      ...communityResult.rows[0],
+      member_count: parseInt(memberCountResult.rows[0].member_count),
+      post_count: parseInt(postCountResult.rows[0].post_count)
+    };
+
+    res.status(200).json(community);
+
+  } catch (error) {
+    console.error('Error fetching community by ID:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   createCommunity,
   getAllCommunities,
   joinCommunity,
   getJoinedCommunities,
+  getCommunityById,
 };
