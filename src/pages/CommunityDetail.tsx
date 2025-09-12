@@ -196,8 +196,13 @@ const CommunityDetail = () => {
     }
   };
   const handleCreatePost = () => {
-    // Navigate to Communities page to create post
-    navigate('/communities');
+    // Navigate to CreatePost page with community pre-selected
+    navigate('/create-post', { 
+      state: { 
+        preSelectedCommunityId: community?.community_id,
+        preSelectedCommunityName: community?.name 
+      } 
+    });
   };
   useEffect(() => {
     fetchCommunityDetails();

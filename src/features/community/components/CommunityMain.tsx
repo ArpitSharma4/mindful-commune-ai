@@ -248,39 +248,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
               : 'Share your thoughts, find support, and connect with others. Post anonymously or with your username.'}
           </p>
         </div>
-        {/* Search Bar */}
-        <div className={`max-w-md mx-auto ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.4s' }}>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search posts, topics, or communities..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10 pr-10 bg-muted/50 backdrop-blur-sm border-border/60 focus:border-primary transition-all duration-300"
-            />
-            {searchTerm && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                onClick={() => handleSearch("")}
-              >
-                ×
-              </Button>
-            )}
-          </div>
-        </div>
-        {/* Create Post Button */}
-        <div className={`flex justify-center ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.6s' }}>
-          <Button 
-            variant="therapeutic" 
-            size="lg" 
-            className="shadow-therapeutic w-full sm:w-auto max-w-xs sm:max-w-none transition-all duration-300 hover:scale-105 hover:shadow-lg"
-            onClick={handleShareStory}
-          >
-            Create Post
-          </Button>
-        </div>
+
         {/* Feed Tabs */}
         <Tabs defaultValue="trending" className={`w-full ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.8s' }} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 backdrop-blur-sm">

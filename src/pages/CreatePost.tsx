@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,7 @@ interface Community {
 const CreatePost = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedCommunity, setSelectedCommunity] = useState("");
@@ -49,6 +50,14 @@ const CreatePost = () => {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Check for pre-selected community from navigation state
+  useEffect(() => {
+    const state = location.state as { preSelectedCommunityId?: string; preSelectedCommunityName?: string } | null;
+    if (state?.preSelectedCommunityId) {
+      setSelectedCommunity(state.preSelectedCommunityId);
+    }
+  }, [location.state]);
 
   // Fetch communities
   const fetchCommunities = async () => {
@@ -273,7 +282,7 @@ const CreatePost = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-900 text-white">
       <Header />
       
       <div className="w-full px-4 py-12">
@@ -312,9 +321,6 @@ const CreatePost = () => {
                 <h1 className="text-xl font-semibold">Create post</h1>
               </div>
               <div className="flex items-center gap-4">
-                <Button variant="ghost" className="text-slate-400 hover:text-white">
-                  Drafts
-                </Button>
                 <Button
                   variant="ghost"
                   size="icon"

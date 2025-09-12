@@ -55,19 +55,31 @@ const Explore = () => {
   const fetchJoinedCommunities = async () => {
     try {
       const token = localStorage.getItem('authToken');
+      console.log('Fetching joined communities - token exists:', !!token);
+      
       if (!token) {
+        console.log('No auth token found, skipping joined communities fetch');
+        setJoinedCommunitiesData([]);
+        setJoinedCommunities(new Set());
         setIsLoadingJoined(false);
         return;
       }
+      
       setIsLoadingJoined(true);
+      console.log('Making request to /api/community/joined');
+      
       const response = await fetch('/api/community/joined', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
+      console.log('Joined communities response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Joined communities data received:', data);
+        
         setJoinedCommunitiesData(data);
         // Update the joined communities set for quick lookup - handle both string and number IDs
         const joinedIds = new Set();
@@ -78,8 +90,18 @@ const Explore = () => {
           joinedIds.add(Number(id));
         });
         setJoinedCommunities(joinedIds);
-      } else if (response.status !== 401) {
-        console.error('Failed to fetch joined communities');
+        console.log('Updated joined communities set:', joinedIds);
+      } else if (response.status === 401) {
+        console.log('Authentication failed for joined communities');
+        // Clear auth data if token is invalid
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        setJoinedCommunitiesData([]);
+        setJoinedCommunities(new Set());
+      } else {
+        console.error('Failed to fetch joined communities, status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
       }
     } catch (error) {
       console.error('Error fetching joined communities:', error);
@@ -92,6 +114,26 @@ const Explore = () => {
     fetchCommunities();
     fetchJoinedCommunities();
   }, []);
+
+  // Listen for authentication state changes to refetch joined communities
+  useEffect(() => {
+    const handleAuthChange = () => {
+      console.log('Auth state changed, refetching joined communities');
+      fetchJoinedCommunities();
+    };
+
+    // Listen for custom auth events (login/logout)
+    window.addEventListener('authStateChanged', handleAuthChange);
+    
+    // Also listen for storage changes (cross-tab login/logout)
+    window.addEventListener('storage', handleAuthChange);
+
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthChange);
+      window.removeEventListener('storage', handleAuthChange);
+    };
+  }, []);
+
   // Filter communities to exclude joined ones and apply search
   const filteredCommunities = communities.filter(community => {
     const matchesSearch = community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
