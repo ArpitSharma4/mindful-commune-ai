@@ -35,7 +35,7 @@ interface Post {
   community?: string;
 }
 
-const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }: CommunityMainProps) => {
+const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = "1" }: CommunityMainProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
@@ -48,11 +48,16 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }:
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
+      console.log(`Fetching posts for community ID: ${communityId}`);
+      
       // Use the dynamic communityId prop
       const response = await fetch(`/api/posts/in/${communityId}`);
+      console.log(`API response status: ${response.status}`);
       
       if (response.ok) {
         const data = await response.json();
+        console.log('API response data:', data);
+        
         if (Array.isArray(data)) {
           // Transform backend data to match our Post interface
           const transformedPosts = data.map((post: any) => ({
@@ -67,10 +72,15 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }:
             tags: [], // Posts don't have tags in new schema
             community: "r/Community"
           }));
+          console.log('Transformed posts:', transformedPosts);
           setPosts(transformedPosts);
+        } else {
+          console.warn('API response is not an array:', data);
+          setPosts([]);
         }
       } else {
-        console.error('Failed to fetch posts');
+        const errorData = await response.text();
+        console.error('Failed to fetch posts:', response.status, errorData);
         setPosts([]);
       }
     } catch (error) {
@@ -206,6 +216,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }:
             isOpen={isCreatePostOpen} 
             onClose={() => setIsCreatePostOpen(false)}
             onPostCreated={handlePostCreated}
+            communityId={communityId}
           />
         )}
 
