@@ -11,7 +11,9 @@ import CommunityDetail from "./pages/CommunityDetail";
 import CreatePost from "./pages/CreatePost";
 import Settings from "./components/Settings";
 import NotFound from "./pages/NotFound";
+
 const queryClient = new QueryClient();
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -21,6 +23,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/global-feed" element={<Home />} />
+          <Route path="/communities" element={<Communities />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/community/:communityId" element={<CommunityDetail />} />
           <Route path="/create-post" element={<CreatePost />} />
@@ -32,4 +35,5 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
+
 export default App;
