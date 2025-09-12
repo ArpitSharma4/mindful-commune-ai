@@ -9,7 +9,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import CreateCommunityModal from "@/components/CreateCommunityModal";
-
 const Explore = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -22,7 +21,6 @@ const Explore = () => {
   const [isLoadingJoined, setIsLoadingJoined] = useState(true);
   const [joinedCommunities, setJoinedCommunities] = useState(new Set());
   const [showAllJoined, setShowAllJoined] = useState(false);
-
   // Fetch communities from backend
   const fetchCommunities = async () => {
     try {
@@ -53,7 +51,6 @@ const Explore = () => {
       setIsLoading(false);
     }
   };
-
   // Fetch joined communities from backend
   const fetchJoinedCommunities = async () => {
     try {
@@ -62,7 +59,6 @@ const Explore = () => {
         setIsLoadingJoined(false);
         return;
       }
-
       setIsLoadingJoined(true);
       const response = await fetch('/api/community/joined', {
         headers: {
@@ -85,23 +81,19 @@ const Explore = () => {
       setIsLoadingJoined(false);
     }
   };
-
   // Load communities and joined communities on component mount
   useEffect(() => {
     fetchCommunities();
     fetchJoinedCommunities();
   }, []);
-
   const filteredCommunities = communities.filter(community =>
     community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (community.description && community.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
   // Get communities to display based on expand state
   const displayedJoinedCommunities = showAllJoined 
     ? joinedCommunitiesData 
     : joinedCommunitiesData.slice(0, 3);
-
   const handleJoinCommunity = async (communityId: string) => {
     try {
       const token = localStorage.getItem('authToken');
@@ -115,16 +107,13 @@ const Explore = () => {
         });
         return;
       }
-
       const response = await fetch(`/api/community/${communityId}/join`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-
       const data = await response.json();
-
       if (response.ok) {
         // Update joined communities state
         setJoinedCommunities(prev => new Set(prev).add(communityId));
@@ -158,11 +147,9 @@ const Explore = () => {
       });
     }
   };
-
   const handleCreateCommunity = () => {
     setIsCreateCommunityOpen(true);
   };
-
   const handleCommunityCreated = (newCommunity: any) => {
     // Add the new community to the top of the list
     setCommunities(prev => [newCommunity, ...prev]);
@@ -173,11 +160,9 @@ const Explore = () => {
       duration: 3000,
     });
   };
-
   const handleCommunityClick = (communityId: string) => {
     navigate(`/community/${communityId}`);
   };
-
   return (
     <div className="min-h-screen">
       <Header />
@@ -205,7 +190,6 @@ const Explore = () => {
                 <LeftSidebar onClose={() => setIsSidebarOpen(false)} />
               </div>
             )}
-
             {/* Main Content */}
             <div className="w-full max-w-screen-xl mx-auto">
               <div className="space-y-8">
@@ -218,7 +202,6 @@ const Explore = () => {
                     Discover supportive communities where you can share your journey, find understanding, and connect with others who get it.
                   </p>
                 </div>
-
                 {/* Search Bar and Action Buttons */}
                 <div className="max-w-2xl mx-auto space-y-4">
                   <div className="relative">
@@ -242,7 +225,6 @@ const Explore = () => {
                     </Button>
                   </div>
                 </div>
-
                 {/* Joined Communities Section */}
                 {!isLoadingJoined && joinedCommunitiesData.length > 0 && (
                   <div className="space-y-6">
@@ -284,7 +266,7 @@ const Explore = () => {
                             <div className="flex items-start justify-between">
                               <div className="space-y-1">
                                 <CardTitle className="text-lg">{community.name}</CardTitle>
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge variant="therapeutic" className="text-xs">
                                   Joined
                                 </Badge>
                                 {community.creator_username && (
@@ -303,14 +285,13 @@ const Explore = () => {
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Users className="h-4 w-4" />
-                                <span>{community.member_count || 0} members</span>
+                                <span>0 members</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <MessageSquare className="h-4 w-4" />
-                                <span>{community.post_count || 0} posts</span>
+                                <span>0 posts</span>
                               </div>
                             </div>
-
                             <div className="flex flex-wrap gap-1">
                               <Badge variant="outline" className="text-xs">
                                 #{community.slug}
@@ -322,7 +303,6 @@ const Explore = () => {
                     </div>
                   </div>
                 )}
-
                 {/* All Communities Section */}
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
@@ -371,7 +351,7 @@ const Explore = () => {
                                 )}
                               </div>
                               <Button
-                                variant={joinedCommunities.has(community.community_id) ? "default" : "therapeutic"}
+                                variant={joinedCommunities.has(community.community_id) ? "default" : "primary"}
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation(); // Prevent card click when clicking join button
@@ -391,14 +371,13 @@ const Explore = () => {
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Users className="h-4 w-4" />
-                                <span>{community.member_count || 0} members</span>
+                                <span>0 members</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <MessageSquare className="h-4 w-4" />
-                                <span>{community.post_count || 0} posts</span>
+                                <span>0 posts</span>
                               </div>
                             </div>
-
                             <div className="flex flex-wrap gap-1">
                               <Badge variant="outline" className="text-xs">
                                 #{community.slug}
@@ -409,7 +388,6 @@ const Explore = () => {
                       ))}
                     </div>
                   )}
-
                   {filteredCommunities.length === 0 && !isLoading && (
                     <div className="text-center py-12">
                       <p className="text-muted-foreground">No communities found matching "{searchTerm}"</p>
@@ -424,7 +402,6 @@ const Explore = () => {
           </div>
         </div>
       </main>
-
       <CreateCommunityModal
         isOpen={isCreateCommunityOpen}
         onClose={() => setIsCreateCommunityOpen(false)}
@@ -433,5 +410,4 @@ const Explore = () => {
     </div>
   );
 };
-
 export default Explore;

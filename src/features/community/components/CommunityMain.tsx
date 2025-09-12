@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { TrendingUp, Clock, Heart, Search, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import RedditStylePostEditor from "./RedditStylePostEditor";
+import { useNavigate } from "react-router-dom";
 
 interface CommunityMainProps {
   onOpenCreatePost?: () => void;
@@ -37,12 +37,12 @@ interface Post {
 
 const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }: CommunityMainProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
   const [isLoading, setIsLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
-  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [communityName, setCommunityName] = useState<string>("Community");
 
   // Fetch community details to get the name
@@ -121,7 +121,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }:
       onOpenCreatePost();
       return;
     }
-    setIsCreatePostOpen(true);
+    navigate('/create-post');
   };
 
   const handlePostCreated = () => {
@@ -228,16 +228,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }:
             Create Post
           </Button>
         </div>
-
-        {/* Reddit Style Post Editor (fallback when standalone) */}
-        {!onOpenCreatePost && (
-          <RedditStylePostEditor 
-            isOpen={isCreatePostOpen} 
-            onClose={() => setIsCreatePostOpen(false)}
-            onPostCreated={handlePostCreated}
-            communityId={communityId}
-          />
-        )}
 
         {/* Feed Tabs */}
         <Tabs defaultValue="trending" className={`w-full ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.8s' }} onValueChange={setActiveTab}>

@@ -7,7 +7,6 @@ import { Users, MessageSquare, ArrowLeft, Leaf, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
 interface Community {
   community_id: string;
   name: string;
@@ -18,7 +17,6 @@ interface Community {
   member_count?: number;
   post_count?: number;
 }
-
 const CommunityDetail = () => {
   const { communityId } = useParams<{ communityId: string }>();
   const navigate = useNavigate();
@@ -28,7 +26,6 @@ const CommunityDetail = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isJoined, setIsJoined] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-
   // Fetch community details
   const fetchCommunityDetails = async () => {
     if (!communityId) return;
@@ -72,12 +69,10 @@ const CommunityDetail = () => {
       setIsLoading(false);
     }
   };
-
   // Check if user has joined this community
   const checkMembershipStatus = async () => {
     const token = localStorage.getItem('authToken');
     if (!token || !communityId) return;
-
     try {
       const response = await fetch('/api/community/joined', {
         headers: {
@@ -94,7 +89,6 @@ const CommunityDetail = () => {
       console.error('Error checking membership:', error);
     }
   };
-
   // Handle joining community
   const handleJoinCommunity = async () => {
     const token = localStorage.getItem('authToken');
@@ -108,9 +102,7 @@ const CommunityDetail = () => {
       });
       return;
     }
-
     if (!communityId) return;
-
     try {
       setIsJoining(true);
       const response = await fetch(`/api/community/${communityId}/join`, {
@@ -119,7 +111,6 @@ const CommunityDetail = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-
       if (response.ok) {
         setIsJoined(true);
         toast({
@@ -150,7 +141,6 @@ const CommunityDetail = () => {
       setIsJoining(false);
     }
   };
-
   // Handle leaving community
   const handleLeaveCommunity = async () => {
     const token = localStorage.getItem('authToken');
@@ -164,9 +154,7 @@ const CommunityDetail = () => {
       });
       return;
     }
-
     if (!communityId) return;
-
     try {
       setIsJoining(true);
       // Note: You'll need to implement the leave endpoint in backend
@@ -176,7 +164,6 @@ const CommunityDetail = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-
       if (response.ok) {
         setIsJoined(false);
         toast({
@@ -207,22 +194,14 @@ const CommunityDetail = () => {
       setIsJoining(false);
     }
   };
-
   const handleCreatePost = () => {
-    // Navigate to Communities page with state to open create post modal and pre-select community
-    navigate('/communities', {
-      state: {
-        openCreatePost: true,
-        preSelectedCommunityId: communityId
-      }
-    });
+    // Navigate to Communities page to create post
+    navigate('/communities');
   };
-
   useEffect(() => {
     fetchCommunityDetails();
     checkMembershipStatus();
   }, [communityId]);
-
   if (isLoading) {
     return (
       <div className="min-h-screen">
@@ -245,7 +224,6 @@ const CommunityDetail = () => {
       </div>
     );
   }
-
   if (!community) {
     return (
       <div className="min-h-screen">
@@ -264,7 +242,6 @@ const CommunityDetail = () => {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen">
       <Header />
@@ -305,7 +282,6 @@ const CommunityDetail = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Explore
               </Button>
-
               {/* Community Header */}
               <Card className="border-therapeutic/20">
                 <CardHeader>
@@ -357,7 +333,6 @@ const CommunityDetail = () => {
                   </div>
                 </CardContent>
               </Card>
-
               {/* Create Post Content Area */}
               <Card>
                 <CardHeader>
@@ -385,5 +360,4 @@ const CommunityDetail = () => {
     </div>
   );
 };
-
 export default CommunityDetail;

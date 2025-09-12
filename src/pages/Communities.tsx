@@ -5,11 +5,12 @@ import { PostFeatures } from "@/features/community/components";
 import { Button } from "@/components/ui/button";
 import { Leaf } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import JournalFeed from "@/features/community/components/CommunityMain";
 
 const Communities = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [communityId, setCommunityId] = useState<number>(1);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -20,6 +21,15 @@ const Communities = () => {
       setCommunityId(location.state.preSelectedCommunityId);
     }
   }, [location.state]);
+
+  // Refresh posts when returning from CreatePost page
+  useEffect(() => {
+    if (location.state?.fromCreatePost) {
+      setRefreshTrigger(prev => prev + 1);
+      // Clear the navigation state to prevent repeated refreshes
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   // Fetch the first available community ID on component mount
   useEffect(() => {
