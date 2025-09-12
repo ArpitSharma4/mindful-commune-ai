@@ -70,7 +70,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = "1" 
             upvotes: post.vote_score,
             comments: post.comment_count,
             tags: [], // Posts don't have tags in new schema
-            community: "r/Community"
+            community: "r/Community
           }));
           console.log('Transformed posts:', transformedPosts);
           setPosts(transformedPosts);
