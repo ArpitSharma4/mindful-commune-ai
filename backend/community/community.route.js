@@ -5,6 +5,7 @@ const {
   createCommunity,
   getAllCommunities,
   joinCommunity,
+  leaveCommunity,
   getJoinedCommunities,
   getCommunityById,
 } = require('./community.controller');
@@ -29,5 +30,8 @@ router.get('/joined', authMiddleware, getJoinedCommunities);
 // POST /api/communities/:communityId/join -> Joins a community
 // This is a dynamic route where ':communityId' is a URL parameter.
 router.post('/:communityId/join', authMiddleware, joinCommunity);
+
+// POST /api/communities/:communityId/leave -> Leaves a community
+router.post('/:communityId/leave', authMiddleware, leaveCommunity);
 
 module.exports = router;

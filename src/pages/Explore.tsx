@@ -284,7 +284,7 @@ const Explore = () => {
                             <div className="flex items-start justify-between">
                               <div className="space-y-1">
                                 <CardTitle className="text-lg">{community.name}</CardTitle>
-                                <Badge variant="therapeutic" className="text-xs">
+                                <Badge variant="secondary" className="text-xs">
                                   Joined
                                 </Badge>
                                 {community.creator_username && (
@@ -303,11 +303,11 @@ const Explore = () => {
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Users className="h-4 w-4" />
-                                <span>0 members</span>
+                                <span>{community.member_count || 0} members</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <MessageSquare className="h-4 w-4" />
-                                <span>0 posts</span>
+                                <span>{community.post_count || 0} posts</span>
                               </div>
                             </div>
 
@@ -371,7 +371,7 @@ const Explore = () => {
                                 )}
                               </div>
                               <Button
-                                variant={joinedCommunities.has(community.community_id) ? "default" : "primary"}
+                                variant={joinedCommunities.has(community.community_id) ? "default" : "therapeutic"}
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation(); // Prevent card click when clicking join button
@@ -391,11 +391,11 @@ const Explore = () => {
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Users className="h-4 w-4" />
-                                <span>0 members</span>
+                                <span>{community.member_count || 0} members</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <MessageSquare className="h-4 w-4" />
-                                <span>0 posts</span>
+                                <span>{community.post_count || 0} posts</span>
                               </div>
                             </div>
 

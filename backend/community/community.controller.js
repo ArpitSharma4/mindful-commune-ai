@@ -43,12 +43,25 @@ const createCommunity = async (req, res) => {
 
 const getAllCommunities = async (req, res) => {
   try {
-    // 1. Query the database to get all communities.
-    // We join with the users table to also fetch the creator's username.
+    // 1. Query the database to get all communities with member and post counts.
     const allCommunitiesQuery = `
-      SELECT c.*, u.username AS creator_username
+      SELECT 
+        c.*,
+        u.username AS creator_username,
+        COALESCE(member_counts.member_count, 0) AS member_count,
+        COALESCE(post_counts.post_count, 0) AS post_count
       FROM communities c
       JOIN users u ON c.creator_id = u.user_id
+      LEFT JOIN (
+        SELECT community_id, COUNT(*) as member_count
+        FROM community_members
+        GROUP BY community_id
+      ) member_counts ON c.community_id = member_counts.community_id
+      LEFT JOIN (
+        SELECT community_id, COUNT(*) as post_count
+        FROM posts
+        GROUP BY community_id
+      ) post_counts ON c.community_id = post_counts.community_id
       ORDER BY c.created_at DESC;
     `;
     const allCommunities = await pool.query(allCommunitiesQuery);
@@ -165,10 +178,39 @@ const getCommunityById = async (req, res) => {
   }
 };
 
+const leaveCommunity = async (req, res) => {
+  try {
+    // 1. Get the communityId from the URL parameters.
+    const { communityId } = req.params;
+    // 2. Get the userId from the authenticated user (provided by authMiddleware).
+    const userId = req.user.userId;
+
+    // 3. Delete the membership record from the join table.
+    const leaveQuery = `
+      DELETE FROM community_members 
+      WHERE user_id = $1 AND community_id = $2
+      RETURNING *;
+    `;
+    const result = await pool.query(leaveQuery, [userId, communityId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'You are not a member of this community.' });
+    }
+
+    // 4. Send a success response.
+    res.status(200).json({ message: 'Successfully left the community!' });
+
+  } catch (error) {
+    console.error('Error leaving community:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   createCommunity,
   getAllCommunities,
   joinCommunity,
+  leaveCommunity,
   getJoinedCommunities,
   getCommunityById,
 };

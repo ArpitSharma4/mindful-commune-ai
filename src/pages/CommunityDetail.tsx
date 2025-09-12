@@ -209,8 +209,13 @@ const CommunityDetail = () => {
   };
 
   const handleCreatePost = () => {
-    // Navigate to Communities page to create post
-    navigate('/communities');
+    // Navigate to Communities page with state to open create post modal and pre-select community
+    navigate('/communities', {
+      state: {
+        openCreatePost: true,
+        preSelectedCommunityId: communityId
+      }
+    });
   };
 
   useEffect(() => {

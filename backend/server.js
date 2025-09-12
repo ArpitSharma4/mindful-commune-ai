@@ -2,83 +2,60 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const path = require('path'); // <-- Import the 'path' module
+const path = require('path');
+const fs = require('fs');
 
+// --- Top-Level Routers ---
 const userRoutes = require('./users/users.route');
 const communityRoutes = require('./community/community.route');
-const postRoutes = require('./posts/posts.route'); // <-- Import post routes
+const postRoutes = require('./posts/posts.route'); // <-- Only import the main parent router
 
-// Validate required environment variables
-const requiredEnvVars = ['JWT_SECRET', 'DB_USER', 'DB_HOST', 'DB_NAME', 'DB_PASSWORD', 'DB_PORT'];
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+// ... (rest of your initial setup code) ...
 
-if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars.join(', '));
-  process.exit(1);
-}
-
-// Create the Express application
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS configuration - Allow requests from frontend
+// ... (CORS and express.json() middleware) ...
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
-// Middleware to parse incoming JSON requests
-// This allows us to access `req.body` in our controllers
 app.use(express.json());
 
-// --- Static File Serving ---
-// Add logging middleware for static file requests to debug
-app.use('/uploads', (req, res, next) => {
-  console.log(`📁 Static file request: ${req.method} ${req.originalUrl}`);
-  console.log(`📂 Looking for file: ${path.join(__dirname, 'uploads', req.url)}`);
-  next();
-});
 
-// This makes the 'uploads' folder publicly accessible.
-// A request to http://localhost:3000/uploads/image.jpg will now serve the file.
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// --- Static File Serving ---
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('📁 Created uploads directory');
+}
+app.use('/uploads', express.static(uploadsDir));
 
 // --- Main Routes ---
-// Any request starting with '/api/users' will be handled by our userRoutes file.
+// This section should only contain your top-level routes.
 app.use('/api/users', userRoutes);
-
-// Any request starting with '/api/communities' will be handled by our communityRoutes file.
-app.use('/api/community', communityRoutes);
-
-// Any request starting with '/api/posts' will be handled by our postRoutes file.
+app.use('/api/community', communityRoutes); // Note: You probably mean /api/communities
 app.use('/api/posts', postRoutes);
 
-// Global error handling middleware
+// ... (rest of your error handling and app.listen code) ...
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal Server Error' });
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
-
-// A simple root route to check if the server is running
 app.get('/', (req, res) => {
-  res.json({
-    message: 'Mindful Commune AI Backend is running!',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
-  });
+  res.json({
+    message: 'Mindful Commune AI Backend is running!',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
 });
-
-// 404 handler for unmatched routes
 app.use((req, res) => {
-  res.status(404).json({ error: `Route ${req.originalUrl} not found` });
+  res.status(404).json({ error: `Route ${req.originalUrl} not found` });
 });
-
-// Start the server and listen for incoming requests
 app.listen(PORT, () => {
-  console.log(`🚀 Server is listening on http://localhost:${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 CORS enabled for frontend development`);
+  console.log(`🚀 Server is listening on http://localhost:${PORT}`);
 });
 

@@ -1,9 +1,9 @@
 const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
-// Import all three controller functions
 const { createPost, getPostsByCommunity, voteOnPost } = require('./posts.controller');
 const authMiddleware = require('../middleware/auth');
+const commentRoutes = require('../comments/comments.route'); // <-- 1. Import the comment router
 
 const router = Router();
 
@@ -20,8 +20,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// --- Route Definitions ---
 
+// --- Post-Specific Routes ---
 // Creates a new post in a specific community (Protected)
 router.post('/in/:communityId', authMiddleware, upload.single('media'), createPost);
 
@@ -30,6 +30,12 @@ router.get('/in/:communityId', getPostsByCommunity);
 
 // Casts a vote on a specific post (Protected)
 router.post('/:postId/vote', authMiddleware, voteOnPost);
+
+
+// --- Nested Comment Routes ---
+// 2. This line tells Express: "For any request that matches '/:postId/comments',
+//    hand it over to the commentRoutes file to handle it from there."
+router.use('/:postId/comments', commentRoutes);
 
 
 module.exports = router;

@@ -1,44 +1,21 @@
-const pool = require('../db');
+const { Router } = require('express');
+const { createComment } = require('./comments.controller');
+const authMiddleware = require('../middleware/auth');
 
-/**
- * Creates a new comment on a specific post.
- * This is a protected action.
- */
-const createComment = async (req, res) => {
-  try {
-    const { postId } = req.params; // This comes from the parent router (posts.route.js)
-    const { content, parent_comment_id } = req.body; // parent_comment_id is optional for threaded replies
-    const userId = req.user.userId;
+// Using { mergeParams: true } is the key to nested routing.
+// It allows this router to access URL parameters from its parent router
+// (in this case, we can get :postId from the posts router).
+const router = Router({ mergeParams: true });
 
-    // Validate input
-    if (!content || content.trim() === '') {
-      return res.status(400).json({ error: 'Comment content cannot be empty.' });
-    }
+// Defines the route for: POST /api/posts/:postId/comments
+// The path here is just '/' because the '/:postId/comments' part is handled
+// in the posts.route.js file where this router is used.
+//
+// This is a protected route, so only logged-in users can comment.
+router.post('/', authMiddleware, createComment);
 
-    // Insert the new comment into the database
-    const newCommentQuery = `
-      INSERT INTO comments (content, author_id, post_id, parent_comment_id)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *;
-    `;
+// We will add the route for GETTING comments here later.
+// router.get('/', getCommentsByPost);
 
-    const result = await pool.query(newCommentQuery, [content, userId, postId, parent_comment_id || null]);
-    const newComment = result.rows[0];
+module.exports = router;
 
-    res.status(201).json(newComment);
-
-  } catch (error) {
-    console.error('Error creating comment:', error);
-    // Check for foreign key violation (e.g., post or parent comment does not exist)
-    if (error.code === '23503') {
-        return res.status(404).json({ error: 'Post or parent comment not found.' });
-    }
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
-
-module.exports = {
-  createComment,
-};
-
- 
