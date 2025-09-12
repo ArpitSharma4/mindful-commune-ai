@@ -7,7 +7,6 @@ import { Users, MessageSquare, ArrowLeft, Leaf, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import CommunityMain from "@/features/community/components/CommunityMain";
 
 interface Community {
   community_id: string;
@@ -152,6 +151,74 @@ const CommunityDetail = () => {
     }
   };
 
+  // Handle leaving community
+  const handleLeaveCommunity = async () => {
+    const token = localStorage.getItem('authToken');
+    
+    if (!token) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to leave communities.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!communityId) return;
+
+    try {
+      setIsJoining(true);
+      // Note: You'll need to implement the leave endpoint in backend
+      const response = await fetch(`/api/community/${communityId}/leave`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setIsJoined(false);
+        toast({
+          title: "Left Community",
+          description: "You've successfully left the community.",
+          duration: 3000,
+        });
+        // Refresh community details to update member count
+        fetchCommunityDetails();
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Leave Failed",
+          description: data.error || "Failed to leave community.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Error leaving community:', error);
+      toast({
+        title: "Network Error",
+        description: "Unable to connect to the server.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleCreatePost = () => {
+    // Navigate to Communities page with this community pre-selected for posting
+    navigate('/communities', { 
+      state: { 
+        openCreatePost: true, 
+        preSelectedCommunityId: communityId,
+        preSelectedCommunityName: community?.name 
+      } 
+    });
+  };
+
   useEffect(() => {
     fetchCommunityDetails();
     checkMembershipStatus();
@@ -253,15 +320,26 @@ const CommunityDetail = () => {
                         Created by u/{community.creator_username}
                       </p>
                     </div>
-                    <Button
-                      variant={isJoined ? "default" : "therapeutic"}
-                      size="lg"
-                      onClick={handleJoinCommunity}
-                      disabled={isJoined || isJoining}
-                      className="shadow-therapeutic"
-                    >
-                      {isJoining ? "Joining..." : isJoined ? "Joined" : "Join Community"}
-                    </Button>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="therapeutic"
+                        size="lg"
+                        onClick={handleCreatePost}
+                        className="shadow-therapeutic"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Post
+                      </Button>
+                      <Button
+                        variant={isJoined ? "destructive" : "therapeutic"}
+                        size="lg"
+                        onClick={isJoined ? handleLeaveCommunity : handleJoinCommunity}
+                        disabled={isJoining}
+                        className="shadow-therapeutic"
+                      >
+                        {isJoining ? "Processing..." : isJoined ? "Leave Community" : "Join Community"}
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -281,11 +359,26 @@ const CommunityDetail = () => {
                 </CardContent>
               </Card>
 
-              {/* Community Posts */}
-              <CommunityMain 
-                communityId={communityId} 
-                disableAnimations={true}
-              />
+              {/* Create Post Content Area */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Share with the Community</CardTitle>
+                  <CardDescription>
+                    Create a new post to share your thoughts, ask questions, or start a discussion.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant="therapeutic"
+                    size="lg"
+                    onClick={handleCreatePost}
+                    className="w-full shadow-therapeutic"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Create New Post
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

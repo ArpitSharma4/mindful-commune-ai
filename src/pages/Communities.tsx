@@ -5,13 +5,22 @@ import { PostFeatures, RedditStylePostEditor } from "@/features/community/compon
 import { Button } from "@/components/ui/button";
 import { Leaf } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import JournalFeed from "@/features/community/components/CommunityMain";
 
 const Communities = () => {
+  const location = useLocation();
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [communityId, setCommunityId] = useState<number>(1);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Check for navigation state to pre-open post creation
+  useEffect(() => {
+    if (location.state?.openCreatePost) {
+      setIsComposeOpen(true);
+    }
+  }, [location.state]);
 
   // Fetch the first available community ID on component mount
   useEffect(() => {
@@ -21,7 +30,9 @@ const Communities = () => {
         if (response.ok) {
           const communities = await response.json();
           if (communities.length > 0) {
-            setCommunityId(communities[0].community_id);
+            // Use pre-selected community if available, otherwise use first community
+            const targetCommunityId = location.state?.preSelectedCommunityId || communities[0].community_id;
+            setCommunityId(targetCommunityId);
           }
         }
       } catch (error) {
@@ -31,7 +42,7 @@ const Communities = () => {
     };
 
     fetchCommunities();
-  }, []);
+  }, [location.state]);
 
   const handlePostCreated = () => {
     setIsComposeOpen(false);
@@ -76,6 +87,8 @@ const Communities = () => {
                     onClose={() => setIsComposeOpen(false)}
                     onPostCreated={handlePostCreated}
                     communityId={communityId}
+                    preSelectedCommunityId={location.state?.preSelectedCommunityId}
+                    preSelectedCommunityName={location.state?.preSelectedCommunityName}
                   />
                 ) : (
                   <JournalFeed 
