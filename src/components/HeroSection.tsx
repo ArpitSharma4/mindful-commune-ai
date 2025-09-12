@@ -39,7 +39,7 @@ const HeroSection = () => {
       title: "Welcome to Our Community! ",
       description: "Connecting you with others on similar journeys.",
     });
-    navigate('/communities');
+    navigate('/explore');
   };
 
   return (

@@ -69,8 +69,14 @@ const Explore = () => {
       if (response.ok) {
         const data = await response.json();
         setJoinedCommunitiesData(data);
-        // Update the joined communities set for quick lookup
-        const joinedIds = new Set(data.map(community => community.community_id));
+        // Update the joined communities set for quick lookup - handle both string and number IDs
+        const joinedIds = new Set();
+        data.forEach(community => {
+          const id = community.community_id;
+          joinedIds.add(id);
+          joinedIds.add(String(id));
+          joinedIds.add(Number(id));
+        });
         setJoinedCommunities(joinedIds);
       } else if (response.status !== 401) {
         console.error('Failed to fetch joined communities');
@@ -86,10 +92,19 @@ const Explore = () => {
     fetchCommunities();
     fetchJoinedCommunities();
   }, []);
-  const filteredCommunities = communities.filter(community =>
-    community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (community.description && community.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Filter communities to exclude joined ones and apply search
+  const filteredCommunities = communities.filter(community => {
+    const matchesSearch = community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (community.description && community.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // Check if community is joined by comparing both string and number IDs
+    const communityId = community.community_id;
+    const isJoined = joinedCommunities.has(communityId) || 
+                     joinedCommunities.has(String(communityId)) || 
+                     joinedCommunities.has(Number(communityId));
+    
+    return matchesSearch && !isJoined;
+  });
   // Get communities to display based on expand state
   const displayedJoinedCommunities = showAllJoined 
     ? joinedCommunitiesData 
@@ -266,7 +281,7 @@ const Explore = () => {
                             <div className="flex items-start justify-between">
                               <div className="space-y-1">
                                 <CardTitle className="text-lg">{community.name}</CardTitle>
-                                <Badge variant="therapeutic" className="text-xs">
+                                <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
                                   Joined
                                 </Badge>
                                 {community.creator_username && (
@@ -351,15 +366,14 @@ const Explore = () => {
                                 )}
                               </div>
                               <Button
-                                variant={joinedCommunities.has(community.community_id) ? "default" : "primary"}
+                                variant="therapeutic"
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation(); // Prevent card click when clicking join button
                                   handleJoinCommunity(community.community_id);
                                 }}
-                                disabled={joinedCommunities.has(community.community_id)}
                               >
-                                {joinedCommunities.has(community.community_id) ? "Joined" : "Join"}
+                                Join
                               </Button>
                             </div>
                           </CardHeader>

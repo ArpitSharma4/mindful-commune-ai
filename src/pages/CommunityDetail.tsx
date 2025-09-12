@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
+import CommunityMain from "@/features/community/components/CommunityMain";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -355,6 +356,17 @@ const CommunityDetail = () => {
               </Card>
             </div>
           </div>
+          
+          {/* Community Posts Section */}
+          {community && (
+            <div className="mt-8">
+              <CommunityMain 
+                communityId={community.community_id}
+                disableAnimations={false}
+                isGlobalFeed={false}
+              />
+            </div>
+          )}
         </div>
       </main>
     </div>
