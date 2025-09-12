@@ -1,13 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, TrendingUp, AlignJustify, Compass, Globe } from "lucide-react";
-
+import { Home, Users, TrendingUp, AlignJustify, Compass } from "lucide-react";
 type LeftSidebarProps = {
   onClose?: () => void;
 };
-
 const LeftSidebar = ({ onClose }: LeftSidebarProps) => {
   const location = useLocation();
-
   return (
     <aside className="hidden md:flex flex-col w-56 pt-0 pr-4 border-r">
       <button onClick={onClose} className="self-start mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
@@ -23,15 +20,6 @@ const LeftSidebar = ({ onClose }: LeftSidebarProps) => {
         >
           <Home className="h-4 w-4" />
           Home
-        </Link>
-        <Link
-          to="/home"
-          className={`inline-flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            location.pathname === "/home" ? "bg-primary/10 text-primary" : "hover:bg-muted"
-          }`}
-        >
-          <Globe className="h-4 w-4" />
-          Global Feed
         </Link>
         <Link
           to="/communities"
@@ -55,5 +43,4 @@ const LeftSidebar = ({ onClose }: LeftSidebarProps) => {
     </aside>
   );
 };
-
 export default LeftSidebar;

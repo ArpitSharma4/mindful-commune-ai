@@ -6,14 +6,11 @@ import { TrendingUp, Clock, Heart, Search, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
 interface CommunityMainProps {
   onOpenCreatePost?: () => void;
   disableAnimations?: boolean;
   communityId?: string | number;
-  isGlobalFeed?: boolean; // New prop to indicate if this is a global feed
 }
-
 interface Post {
   post_id: string;
   title: string;
@@ -35,8 +32,7 @@ interface Post {
   tags?: string[];
   community?: string;
 }
-
-const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, isGlobalFeed = false }: CommunityMainProps) => {
+const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1 }: CommunityMainProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,7 +41,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [communityName, setCommunityName] = useState<string>("Community");
-
   // Fetch community details to get the name
   const fetchCommunityDetails = async () => {
     try {
@@ -58,29 +53,34 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
       console.error('Error fetching community details:', error);
     }
   };
-
-  // Fetch posts from backend - supports both community-specific and global feeds
+  // Fetch posts from backend
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      let response;
+      // Use the dynamic communityId prop
+      console.log('Fetching posts for community ID:', communityId);
+      console.log('Community name:', communityName);
       
-      if (isGlobalFeed) {
-        // For global feed, we'll fetch recent posts by default
-        // The trending/recent sorting will be handled by separate API calls
-        console.log('Fetching recent posts for global feed');
-        response = await fetch('/api/posts/recent');
-      } else {
-        // Use the dynamic communityId prop for community-specific posts
-        console.log('Fetching posts for community ID:', communityId);
-        response = await fetch(`/api/posts/in/${communityId}`);
+      const token = localStorage.getItem('authToken');
+      console.log('Auth token present:', !!token);
+      
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
       
+      const response = await fetch(`/api/posts/in/${communityId}`, {
+        method: 'GET',
+        headers
+      });
       console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
       
       if (response.ok) {
         const data = await response.json();
         console.log('Fetched posts data:', data);
+        console.log('Data type:', typeof data, 'Is array:', Array.isArray(data));
+        
         if (Array.isArray(data)) {
           // Transform backend data to match our Post interface
           const transformedPosts = data.map((post: any) => ({
@@ -93,7 +93,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
             upvotes: post.vote_score,
             comments: post.comment_count,
             tags: [], // Posts don't have tags in new schema
-            community: post.community_name ? `r/${post.community_name}` : `r/${communityName}`
+            community: `r/${communityName}`
           }));
           console.log('Transformed posts:', transformedPosts);
           setPosts(transformedPosts);
@@ -114,7 +114,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
       setIsLoading(false);
     }
   };
-
   // Helper function to calculate time ago
   const getTimeAgo = (createdAt: string) => {
     const now = new Date();
@@ -126,7 +125,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
-
   const handleShareStory = () => {
     if (onOpenCreatePost) {
       onOpenCreatePost();
@@ -134,7 +132,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
     }
     navigate('/create-post');
   };
-
   const handlePostCreated = () => {
     // Refresh posts when a new post is created
     fetchPosts();
@@ -144,57 +141,12 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
       duration: 3000,
     });
   };
-
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setIsLoading(true);
     // Simulate search delay
     setTimeout(() => setIsLoading(false), 300);
   };
-
-  // Fetch posts based on active tab for global feed
-  const fetchPostsByTab = async (tab: string) => {
-    if (!isGlobalFeed) {
-      return; // For community-specific feeds, use the existing fetchPosts method
-    }
-    
-    try {
-      setIsLoading(true);
-      const endpoint = tab === 'trending' ? '/api/posts/trending' : '/api/posts/recent';
-      console.log(`Fetching ${tab} posts for global feed`);
-      const response = await fetch(endpoint);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`Fetched ${tab} posts data:`, data);
-        if (Array.isArray(data)) {
-          const transformedPosts = data.map((post: any) => ({
-            ...post,
-            id: post.post_id,
-            author: post.is_posted_anonymously ? "Anonymous" : post.author_username,
-            isAnonymous: post.is_posted_anonymously,
-            timeAgo: getTimeAgo(post.created_at),
-            upvotes: post.vote_score,
-            comments: post.comment_count,
-            tags: [],
-            community: post.community_name ? `r/${post.community_name}` : 'r/unknown'
-          }));
-          setPosts(transformedPosts);
-        } else {
-          setPosts([]);
-        }
-      } else {
-        console.error(`Failed to fetch ${tab} posts, status:`, response.status);
-        setPosts([]);
-      }
-    } catch (error) {
-      console.error(`Error fetching ${tab} posts:`, error);
-      setPosts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Filter and sort posts based on search term and active tab
   const getFilteredAndSortedPosts = () => {
     let filteredPosts = posts;
@@ -208,62 +160,40 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
       );
     }
     
-    // For global feeds, posts are already sorted by the backend
-    // For community feeds, apply sorting based on active tab
-    if (!isGlobalFeed && activeTab === 'trending') {
+    // Apply sorting based on active tab
+    if (activeTab === 'trending') {
       // Sort by vote score (highest first) for trending
       return filteredPosts.sort((a, b) => (b.vote_score || 0) - (a.vote_score || 0));
     } else {
-      // Return posts as-is (already sorted from backend)
+      // Sort by created_at (newest first) for recent - already sorted from backend
       return filteredPosts;
     }
   };
-
   const displayPosts = getFilteredAndSortedPosts();
-
   useEffect(() => {
     setFilteredPosts(displayPosts);
   }, [searchTerm, activeTab, posts]);
-
-  // Handle tab changes for global feed
-  useEffect(() => {
-    if (isGlobalFeed) {
-      fetchPostsByTab(activeTab);
-    }
-  }, [activeTab, isGlobalFeed]);
-
   // Load community details and posts on component mount and when communityId changes
   useEffect(() => {
-    if (!isGlobalFeed) {
-      fetchCommunityDetails();
-    }
-  }, [communityId, isGlobalFeed]);
-
+    fetchCommunityDetails();
+  }, [communityId]);
   useEffect(() => {
-    if (isGlobalFeed) {
-      // For global feed, fetch posts based on current tab
-      fetchPostsByTab(activeTab);
-    } else if (communityName !== "Community") {
-      // For community feed, fetch community-specific posts
+    if (communityName !== "Community") {
       fetchPosts();
     }
-  }, [communityId, communityName, isGlobalFeed]);
-
+  }, [communityId, communityName]);
   return (
     <section className="space-y-8">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
           <h2 className={`text-3xl md:text-4xl font-bold ${disableAnimations ? '' : 'animate-fade-in'}`}>
-            {isGlobalFeed ? 'Global Feed' : 'Community Posts'}
+            Community Posts
           </h2>
           <p className={`text-lg text-muted-foreground ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.2s' }}>
-            {isGlobalFeed 
-              ? 'Discover posts from all communities. Connect with the entire mindful community.' 
-              : 'Share your thoughts, find support, and connect with others. Post anonymously or with your username.'}
+            Share your thoughts, find support, and connect with others. Post anonymously or with your username.
           </p>
         </div>
-
         {/* Search Bar */}
         <div className={`max-w-md mx-auto ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.4s' }}>
           <div className="relative">
@@ -286,7 +216,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
             )}
           </div>
         </div>
-
         {/* Create Post Button */}
         <div className={`flex justify-center ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.6s' }}>
           <Button 
@@ -298,7 +227,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
             Create Post
           </Button>
         </div>
-
         {/* Feed Tabs */}
         <Tabs defaultValue="trending" className={`w-full ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.8s' }} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 backdrop-blur-sm">
@@ -317,7 +245,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
               Recent
             </TabsTrigger>
           </TabsList>
-
           <TabsContent value="trending" className="space-y-6">
             {isLoading ? (
               <div className="space-y-6">
@@ -348,7 +275,6 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
               </div>
             )}
           </TabsContent>
-
           <TabsContent value="recent" className="space-y-6">
             {isLoading ? (
               <div className="space-y-6">
@@ -377,5 +303,4 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
     </section>
   );
 };
-
 export default CommunityMain;

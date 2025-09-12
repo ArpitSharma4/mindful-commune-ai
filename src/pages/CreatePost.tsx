@@ -198,9 +198,12 @@ const CreatePost = () => {
         body: formDataToSend
       });
 
+      console.log('Post creation response status:', response.status);
       const data = await response.json();
+      console.log('Post creation response data:', data);
 
       if (response.ok) {
+        console.log('Post created successfully, navigating to communities...');
         toast({
           title: "Post Created!",
           description: "Your post has been shared with the community.",

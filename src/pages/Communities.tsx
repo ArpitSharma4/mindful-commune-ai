@@ -35,12 +35,21 @@ const Communities = () => {
   useEffect(() => {
     const fetchCommunities = async () => {
       try {
+        console.log('Fetching communities from /api/community/');
         const response = await fetch('/api/community/');
+        console.log('Communities response status:', response.status);
+        
         if (response.ok) {
           const communities = await response.json();
+          console.log('Communities data:', communities);
           if (communities.length > 0) {
+            console.log('Setting community ID to:', communities[0].community_id);
             setCommunityId(communities[0].community_id);
+          } else {
+            console.log('No communities found');
           }
+        } else {
+          console.error('Failed to fetch communities, status:', response.status);
         }
       } catch (error) {
         console.error('Error fetching communities:', error);
