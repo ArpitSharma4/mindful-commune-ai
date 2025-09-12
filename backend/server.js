@@ -34,6 +34,13 @@ app.use(cors({
 app.use(express.json());
 
 // --- Static File Serving ---
+// Add logging middleware for static file requests to debug
+app.use('/uploads', (req, res, next) => {
+  console.log(`📁 Static file request: ${req.method} ${req.originalUrl}`);
+  console.log(`📂 Looking for file: ${path.join(__dirname, 'uploads', req.url)}`);
+  next();
+});
+
 // This makes the 'uploads' folder publicly accessible.
 // A request to http://localhost:3000/uploads/image.jpg will now serve the file.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

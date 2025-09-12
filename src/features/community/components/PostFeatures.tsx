@@ -63,8 +63,8 @@ const JournalPost = ({
   // Process image URL to ensure it's properly formatted
   const processedImageUrl = mediaSource ? (
     mediaSource.startsWith('http') ? mediaSource : 
-    mediaSource.startsWith('/') ? mediaSource :
-    `/uploads/${mediaSource}`
+    mediaSource.startsWith('/') ? `http://localhost:3000${mediaSource}` :
+    `http://localhost:3000/uploads/${mediaSource}`
   ) : null;
 
   const [currentVoteScore, setCurrentVoteScore] = useState(voteCount);
