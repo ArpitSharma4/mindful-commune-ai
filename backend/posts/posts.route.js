@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
-const { createPost, getPostsByCommunity, voteOnPost } = require('./posts.controller');
+const { createPost, getPostsByCommunity, voteOnPost, getTrendingPosts, getRecentPosts } = require('./posts.controller');
 const authMiddleware = require('../middleware/auth');
 const commentRoutes = require('../comments/comments.route'); // <-- 1. Import the comment router
 
@@ -27,6 +27,12 @@ router.post('/in/:communityId', authMiddleware, upload.single('media'), createPo
 
 // Gets all posts for a specific community (Public)
 router.get('/in/:communityId', getPostsByCommunity);
+
+// Gets trending posts across all communities (Public)
+router.get('/trending', getTrendingPosts);
+
+// Gets recent posts across all communities (Public)
+router.get('/recent', getRecentPosts);
 
 // Casts a vote on a specific post (Protected)
 router.post('/:postId/vote', authMiddleware, voteOnPost);
