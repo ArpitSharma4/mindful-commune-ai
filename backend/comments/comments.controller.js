@@ -21,39 +21,68 @@ const createComment = async (req, res) => {
 };
 
 
-// ... (the getCommentsByPost function code remains the same) ...
 const getCommentsByPost = async (req, res) => {
   try {
     const { postId } = req.params;
-    const query = `
-      SELECT
-        c.comment_id, c.content, c.created_at, c.parent_comment_id, c.is_posted_anonymously,
-        u.username AS author_username
+    
+    // Get all comments for the post with author information and vote scores
+    const commentsQuery = `
+      SELECT 
+        c.comment_id,
+        c.content,
+        c.parent_comment_id,
+        c.created_at,
+        c.updated_at,
+        c.is_posted_anonymously,
+        u.username AS author_username,
+        c.author_id,
+        COALESCE(SUM(v.vote_type), 0) AS vote_score
       FROM comments c
-      JOIN users u ON c.author_id = u.user_id
+      LEFT JOIN users u ON c.author_id = u.user_id
+      LEFT JOIN votes v ON c.comment_id = v.comment_id
       WHERE c.post_id = $1
+      GROUP BY c.comment_id, c.content, c.parent_comment_id, c.created_at, c.updated_at, c.is_posted_anonymously, u.username, c.author_id
       ORDER BY c.created_at ASC;
     `;
-    const result = await pool.query(query, [postId]);
+
+    const result = await pool.query(commentsQuery, [postId]);
     const comments = result.rows;
-    const commentsMap = {};
-    const topLevelComments = [];
+
+    // Process anonymous comments
     comments.forEach(comment => {
       if (comment.is_posted_anonymously) {
         comment.author_username = "Anonymous";
       }
-      comment.children = [];
-      commentsMap[comment.comment_id] = comment;
+      // Convert vote_score to integer
+      comment.vote_score = parseInt(comment.vote_score, 10);
+    });
+
+    // Organize comments into threaded structure
+    const commentMap = new Map();
+    const rootComments = [];
+
+    // First pass: create comment objects with replies array
+    comments.forEach(comment => {
+      comment.replies = [];
+      commentMap.set(comment.comment_id, comment);
+    });
+
+    // Second pass: organize into threaded structure
+    comments.forEach(comment => {
       if (comment.parent_comment_id) {
-        const parent = commentsMap[comment.parent_comment_id];
-        if (parent) {
-          parent.children.push(comment);
+        // This is a reply to another comment
+        const parentComment = commentMap.get(comment.parent_comment_id);
+        if (parentComment) {
+          parentComment.replies.push(comment);
         }
       } else {
-        topLevelComments.push(comment);
+        // This is a root-level comment
+        rootComments.push(comment);
       }
     });
-    res.status(200).json(topLevelComments);
+
+    res.status(200).json(rootComments);
+
   } catch (error) {
     console.error('Error fetching comments:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -112,4 +141,3 @@ module.exports = {
   getCommentsByPost,
   voteOnComment,
 };
-
