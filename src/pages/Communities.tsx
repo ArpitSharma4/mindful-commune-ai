@@ -87,8 +87,6 @@ const Communities = () => {
                     onClose={() => setIsComposeOpen(false)}
                     onPostCreated={handlePostCreated}
                     communityId={communityId}
-                    preSelectedCommunityId={location.state?.preSelectedCommunityId}
-                    preSelectedCommunityName={location.state?.preSelectedCommunityName}
                   />
                 ) : (
                   <JournalFeed 
