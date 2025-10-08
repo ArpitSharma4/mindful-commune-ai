@@ -196,6 +196,17 @@ const CommunityDetail = () => {
     }
   };
   const handleCreatePost = () => {
+    // Check if user has joined the community
+    if (!isJoined) {
+      toast({
+        title: "Join Required",
+        description: "You must join this community before creating a post.",
+        variant: "destructive",
+        duration: 4000,
+      });
+      return;
+    }
+
     // Navigate to CreatePost page with community pre-selected
     navigate('/create-post', { 
       state: { 
@@ -343,14 +354,19 @@ const CommunityDetail = () => {
             </div>
           </div>
           
-          {/* Community Posts Section */}
-          {community && (
+                    {/* Community Posts Section */}
+                    {community && (
             <div className="mt-8">
-              <CommunityMain 
-                communityId={community.community_id}
-                disableAnimations={false}
-                isGlobalFeed={false}
-              />
+              <div className={isSidebarOpen ? "grid grid-cols-1 md:grid-cols-[14rem_1fr] gap-6" : "grid grid-cols-1 gap-6"}>
+                {isSidebarOpen && <div className="relative"></div>}
+                <div className="w-full max-w-4xl mx-auto">
+                  <CommunityMain 
+                    communityId={community.community_id}
+                    disableAnimations={false}
+                    isGlobalFeed={false}
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>

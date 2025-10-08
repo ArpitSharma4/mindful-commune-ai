@@ -20,6 +20,16 @@ import {
   Trash2,
   ArrowLeft
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
@@ -27,6 +37,8 @@ import { Link } from "react-router-dom";
 const Settings = () => {
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState("account");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [settings, setSettings] = useState({
     // Account Settings
     displayName: "",
@@ -63,13 +75,41 @@ const Settings = () => {
   });
 
   useEffect(() => {
-    // Load settings from localStorage or API
-    const savedSettings = localStorage.getItem('userSettings');
-    if (savedSettings) {
-      setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
-    }
+    // Fetch user data from backend
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        
+        if (token) {
+          const response = await fetch('/api/users/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            setSettings(prev => ({
+              ...prev,
+              displayName: userData.username,
+              email: userData.email
+            }));
+          }
+        }
+        
+        // Load other settings from localStorage
+        const savedSettings = localStorage.getItem('userSettings');
+        if (savedSettings) {
+          const parsed = JSON.parse(savedSettings);
+          setSettings(prev => ({ ...prev, ...parsed }));
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    
+    fetchUserData();
   }, []);
-
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: value };
@@ -83,6 +123,62 @@ const Settings = () => {
       title: "Settings Saved",
       description: "Your preferences have been updated successfully.",
     });
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to delete your account.",
+          variant: "destructive",
+        });
+        return;
+      }
+  
+      const response = await fetch('/api/users/me', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+  
+      if (response.ok) {
+        // Clear all local storage
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userSettings');
+        
+        toast({
+          title: "Account Deleted",
+          description: "Your account has been permanently deleted.",
+        });
+        
+        // Redirect to home page after a short delay
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Deletion Failed",
+          description: data.error || "Failed to delete account. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast({
+        title: "Network Error",
+        description: "Unable to connect to the server. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   const sections = [
@@ -150,7 +246,9 @@ const Settings = () => {
     </div>
   );
 
-  const renderPrivacySettings = () => (
+
+  function renderPrivacySettings() {
+  return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium mb-4">Profile Privacy</h3>
@@ -170,7 +268,7 @@ const Settings = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <Label>Show Online Status</Label>
@@ -178,10 +276,9 @@ const Settings = () => {
             </div>
             <Switch
               checked={settings.showOnlineStatus}
-              onCheckedChange={(checked) => handleSettingChange("showOnlineStatus", checked)}
-            />
+              onCheckedChange={(checked) => handleSettingChange("showOnlineStatus", checked)} />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <Label>Allow Direct Messages</Label>
@@ -189,10 +286,9 @@ const Settings = () => {
             </div>
             <Switch
               checked={settings.allowDirectMessages}
-              onCheckedChange={(checked) => handleSettingChange("allowDirectMessages", checked)}
-            />
+              onCheckedChange={(checked) => handleSettingChange("allowDirectMessages", checked)} />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <Label>Show Activity</Label>
@@ -200,13 +296,13 @@ const Settings = () => {
             </div>
             <Switch
               checked={settings.showActivity}
-              onCheckedChange={(checked) => handleSettingChange("showActivity", checked)}
-            />
+              onCheckedChange={(checked) => handleSettingChange("showActivity", checked)} />
           </div>
         </div>
       </div>
     </div>
   );
+}
 
   const renderNotificationSettings = () => (
     <div className="space-y-6">
@@ -436,14 +532,46 @@ const Settings = () => {
             <Download className="h-4 w-4 mr-2" />
             Download My Data
           </Button>
-          <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
+                    <Button 
+            variant="outline" 
+            className="w-full justify-start text-destructive hover:text-destructive"
+            onClick={() => setShowDeleteDialog(true)}
+          >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete Account
           </Button>
         </div>
       </div>
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your account
+              and remove all your data from our servers, including:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>All your posts and comments</li>
+                <li>Your communities and memberships</li>
+                <li>Your profile and settings</li>
+                <li>All associated data</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete Account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
+
 
   const renderContent = () => {
     switch (activeSection) {

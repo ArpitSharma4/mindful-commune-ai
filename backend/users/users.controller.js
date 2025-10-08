@@ -151,8 +151,66 @@ const loginUser = async (req, res) => {
   }
 };
 
+/**
+ * Get current user profile
+ */
+const getCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user.userId; // From auth middleware
+    
+    const query = `
+      SELECT user_id, username, email, created_at
+      FROM users
+      WHERE user_id = $1;
+    `;
+    
+    const result = await pool.query(query, [userId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+/**
+ * Delete user account
+ */
+const deleteUser = async (req, res) => {
+  try {
+    const userId = req.user.userId; // From auth middleware
+    
+    // Delete user and all associated data (cascade delete should handle related records)
+    const deleteQuery = `
+      DELETE FROM users
+      WHERE user_id = $1
+      RETURNING user_id, username;
+    `;
+    
+    const result = await pool.query(deleteQuery, [userId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.status(200).json({ 
+      message: 'Account deleted successfully',
+      deletedUser: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error deleting user account:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 // Remember to export both functions so the router can use them.
 module.exports = {
   createUser,
   loginUser,
+  getCurrentUser,
+  deleteUser
 };

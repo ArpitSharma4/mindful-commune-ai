@@ -1,16 +1,12 @@
-// backend/users/users.route.js
-
 const { Router } = require('express');
-const { createUser, loginUser } = require('./users.controller');
+const { createUser, loginUser, getCurrentUser, deleteUser } = require('./users.controller');
+const authenticateToken = require('../middleware/auth');
 
 const router = Router();
 
-// Define the route for creating a new user.
-// When a POST request is made to '/api/users/', the createUser function will be called.
 router.post('/signup', createUser);
 router.post('/login', loginUser);
-// We can add other routes here later, like:
-// router.get('/:id', getUserById);
-// router.put('/:id', updateUser);
+router.get('/me', authenticateToken, getCurrentUser);
+router.delete('/me', authenticateToken, deleteUser); // Delete account route
 
 module.exports = router;

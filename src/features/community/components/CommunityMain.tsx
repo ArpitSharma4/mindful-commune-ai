@@ -43,6 +43,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [communityName, setCommunityName] = useState<string>("Community");
+  const [isMember, setIsMember] = useState(false);
   // Fetch community details to get the name
   const fetchCommunityDetails = async () => {
     try {
@@ -55,6 +56,38 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
       console.error('Error fetching community details:', error);
     }
   };
+    // Check if user is a member of the community
+    const checkMembershipStatus = async () => {
+      if (isGlobalFeed) {
+        setIsMember(true); // Global feed doesn't require membership
+        return;
+      }
+  
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          setIsMember(false);
+          return;
+        }
+  
+        const response = await fetch('/api/community/joined', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+  
+        if (response.ok) {
+          const joinedCommunities = await response.json();
+          const isJoined = joinedCommunities.some(
+            (comm: any) => comm.community_id === communityId.toString()
+          );
+          setIsMember(isJoined);
+        }
+      } catch (error) {
+        console.error('Error checking membership:', error);
+        setIsMember(false);
+      }
+    };
   // Fetch posts from backend - supports both community-specific and global feeds
   const fetchPosts = async () => {
     try {
@@ -124,6 +157,17 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
       onOpenCreatePost();
       return;
     }
+
+    // Check membership for non-global feeds
+    if (!isGlobalFeed && !isMember) {
+      toast({
+        title: "Join Required",
+        description: "You must join this community before creating a post.",
+        variant: "destructive",
+        duration: 4000,
+      });
+      return;
+    }
     
     // Navigate with appropriate state based on whether this is global feed or community
     const navigationState = isGlobalFeed 
@@ -132,6 +176,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
     
     navigate('/create-post', { state: navigationState });
   };
+   
   const handlePostCreated = () => {
     // Refresh posts when a new post is created
     fetchPosts();
@@ -247,6 +292,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
   useEffect(() => {
     if (!isGlobalFeed) {
       fetchCommunityDetails();
+      checkMembershipStatus();
     }
   }, [communityId, isGlobalFeed]);
 
