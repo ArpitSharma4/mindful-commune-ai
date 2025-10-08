@@ -210,8 +210,8 @@ const Explore = () => {
   const handleCommunityCreated = (newCommunity: any) => {
     console.log('New community created:', newCommunity);
     
-    // Refresh the entire communities list using getAllCommunities API
     fetchCommunities();
+    fetchJoinedCommunities(); // Add this line
     
     toast({
       title: "Community Created! ",

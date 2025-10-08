@@ -19,7 +19,15 @@ const createCommunity = async (req, res) => {
       RETURNING *;
     `;
     const newCommunity = await pool.query(newCommunityQuery, [name, slug, description, creator_id]);
+    const communityId = newCommunity.rows[0].community_id;
 
+// Auto-join the creator to their own community
+const autoJoinQuery = `
+  INSERT INTO community_members (user_id, community_id)
+  VALUES ($1, $2)
+  ON CONFLICT (user_id, community_id) DO NOTHING;
+`;
+await pool.query(autoJoinQuery, [creator_id, communityId]);
     // Get the complete community data with creator info and counts
     const completeDataQuery = `
       SELECT 
@@ -31,7 +39,7 @@ const createCommunity = async (req, res) => {
       JOIN users u ON c.creator_id = u.user_id
       WHERE c.community_id = $1;
     `;
-    const completeData = await pool.query(completeDataQuery, [newCommunity.rows[0].community_id]);
+    const completeData = await pool.query(completeDataQuery, [communityId]);
     
     // Parse counts to integers
     const community = completeData.rows[0];

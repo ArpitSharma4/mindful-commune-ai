@@ -200,6 +200,7 @@ const Communities = () => {
 
   const handleCommunityCreated = (newCommunity: any) => {
     fetchAllCommunities();
+    fetchJoinedCommunities(); // Add this line
     toast({
       title: "Community Created!",
       description: `${newCommunity.name} has been successfully created.`,
