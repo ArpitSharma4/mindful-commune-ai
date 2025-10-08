@@ -29,7 +29,13 @@ const Explore = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setCommunities(data);
+console.log('✅ ALL COMMUNITIES FETCHED:', data.length, 'communities');
+console.log('📋 Communities:', data.map(c => ({ 
+  id: c.community_id, 
+  name: c.name, 
+  creator: c.creator_username 
+})));
+setCommunities(data);
       } else {
         console.error('Failed to fetch communities');
         toast({
@@ -81,16 +87,18 @@ const Explore = () => {
         console.log('Joined communities data received:', data);
         
         setJoinedCommunitiesData(data);
-        // Update the joined communities set for quick lookup - handle both string and number IDs
+        
+        // Update the joined communities set for quick lookup
         const joinedIds = new Set();
         data.forEach(community => {
           const id = community.community_id;
           joinedIds.add(id);
           joinedIds.add(String(id));
-          joinedIds.add(Number(id));
+          // Removed Number(id) since UUIDs are always strings
         });
         setJoinedCommunities(joinedIds);
         console.log('Updated joined communities set:', joinedIds);
+  
       } else if (response.status === 401) {
         console.log('Authentication failed for joined communities');
         // Clear auth data if token is invalid
@@ -134,19 +142,56 @@ const Explore = () => {
     };
   }, []);
 
-  // Filter communities to exclude joined ones and apply search
-  const filteredCommunities = communities.filter(community => {
-    const matchesSearch = community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (community.description && community.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    // Check if community is joined by comparing both string and number IDs
-    const communityId = community.community_id;
-    const isJoined = joinedCommunities.has(communityId) || 
-                     joinedCommunities.has(String(communityId)) || 
-                     joinedCommunities.has(Number(communityId));
-    
-    return matchesSearch && !isJoined;
-  });
+/// Filter communities to exclude joined ones and apply search
+const filteredCommunities = communities.filter(community => {
+  const matchesSearch = community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (community.description && community.description.toLowerCase().includes(searchTerm.toLowerCase()));
+  
+  // Check if community is joined by comparing both string and number IDs
+  const communityId = community.community_id;
+  const isJoined = joinedCommunities.has(communityId) || 
+                   joinedCommunities.has(String(communityId));
+  
+  return matchesSearch && !isJoined;
+});
+// ADD THIS DEBUG LOGGING RIGHT HERE:
+console.log('🔍 FILTERING DEBUG:');
+console.log('- Total communities available:', communities.length);
+console.log('- Joined communities Set:', Array.from(joinedCommunities));
+console.log('- Joined communities count:', joinedCommunitiesData.length);
+console.log('- Filtered (Discover) communities:', filteredCommunities.length);
+console.log('- Discover list:', filteredCommunities.map(c => ({ 
+  id: c.community_id, 
+  name: c.name, 
+  creator: c.creator_username 
+})));
+console.log('- Discover list:', filteredCommunities.map(c => ({ 
+  id: c.community_id, 
+  name: c.name, 
+  creator: c.creator_username 
+})));
+
+// ADD THESE NEW DETAILED LOGS RIGHT HERE (after line 160):
+console.log('- All community IDs and their types:', communities.map(c => ({ 
+  id: c.community_id, 
+  type: typeof c.community_id,
+  name: c.name 
+})));
+console.log('- Checking each community:');
+communities.forEach(c => {
+  const communityId = c.community_id;
+  const isJoined = joinedCommunities.has(communityId) || 
+                   joinedCommunities.has(String(communityId)) || 
+                   joinedCommunities.has(Number(communityId));
+  console.log(`  - ${c.name} (ID: ${communityId}, type: ${typeof communityId}): isJoined = ${isJoined}`);
+});
+
+console.log('- Filtered (Discover) communities:', filteredCommunities.length);
+console.log('- Discover list:', filteredCommunities.map(c => ({ 
+  id: c.community_id, 
+  name: c.name, 
+  creator: c.creator_username 
+})));
   // Get communities to display based on expand state
   const displayedJoinedCommunities = showAllJoined 
     ? joinedCommunitiesData 
