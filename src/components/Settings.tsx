@@ -11,6 +11,7 @@ import {
   Shield, 
   Bell, 
   Eye, 
+  EyeOff,
   Moon, 
   Globe, 
   Mail, 
@@ -38,6 +39,21 @@ const Settings = () => {
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState("account");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+const [passwordData, setPasswordData] = useState({
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: ""
+});
+const [showPasswords, setShowPasswords] = useState({
+  current: false,
+  new: false,
+  confirm: false
+});
+const [showAvatarDialog, setShowAvatarDialog] = useState(false);
+const [avatarFile, setAvatarFile] = useState<File | null>(null);
+const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [settings, setSettings] = useState({
     // Account Settings
@@ -66,7 +82,7 @@ const Settings = () => {
     defaultSort: "hot",
     
     // Appearance Settings
-    theme: "system",
+    theme: "dark", // Default to dark theme
     compactMode: false,
     
     // Language & Region
@@ -102,6 +118,13 @@ const Settings = () => {
         if (savedSettings) {
           const parsed = JSON.parse(savedSettings);
           setSettings(prev => ({ ...prev, ...parsed }));
+          // Apply theme immediately after loading settings
+          if (parsed.theme) {
+            applyTheme(parsed.theme);
+          }
+        } else {
+          // Apply default dark theme if no saved settings
+          applyTheme('dark');
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -110,20 +133,48 @@ const Settings = () => {
     
     fetchUserData();
   }, []);
+
+  const applyTheme = (theme: string) => {
+    const root = document.documentElement;
+    
+    if (theme === 'system') {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.classList.toggle('dark', prefersDark);
+    } else {
+      // Apply specific theme
+      root.classList.toggle('dark', theme === 'dark');
+    }
+  };
+
+  // Apply theme on mount and when settings change
+  useEffect(() => {
+    applyTheme(settings.theme);
+    
+    // Listen for system theme changes when using system theme
+    if (settings.theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => applyTheme('system');
+      
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+  }, [settings.theme]);
+
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: value };
       localStorage.setItem('userSettings', JSON.stringify(newSettings));
+      
+      // Apply theme immediately when changed
+      if (key === 'theme') {
+        applyTheme(value);
+      }
+      
       return newSettings;
     });
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Your preferences have been updated successfully.",
-    });
-  };
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -181,6 +232,199 @@ const Settings = () => {
     }
   };
 
+  const validatePassword = (password: string) => {
+    const errors = [];
+    
+    if (password.length < 8) {
+      errors.push("Password must be at least 8 characters long");
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push("Password must contain at least one uppercase letter");
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      errors.push("Password must contain at least one lowercase letter");
+    }
+    
+    if (!/\d/.test(password)) {
+      errors.push("Password must contain at least one number");
+    }
+    
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push("Password must contain at least one special character");
+    }
+    
+    return errors;
+  };
+
+  const handlePasswordChange = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to change your password.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate required fields
+      if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all password fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate passwords match
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        toast({
+          title: "Password Mismatch",
+          description: "New password and confirm password do not match.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate new password strength
+      const passwordErrors = validatePassword(passwordData.newPassword);
+      if (passwordErrors.length > 0) {
+        toast({
+          title: "Password Requirements Not Met",
+          description: passwordErrors.join(", "),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch('/api/users/change-password', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Password Changed",
+          description: "Your password has been updated successfully.",
+        });
+        
+        // Reset form and close dialog
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
+        setShowPasswords({
+          current: false,
+          new: false,
+          confirm: false
+        });
+        setShowPasswordDialog(false);
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Password Change Failed",
+          description: data.error || "Failed to change password. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast({
+        title: "Network Error",
+        description: "Unable to connect to the server. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) {
+      toast({
+        title: "No File Selected",
+        description: "Please select an image file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    setIsUploadingAvatar(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to upload an avatar.",
+          variant: "destructive",
+        });
+        return;
+      }
+  
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
+  
+      const response = await fetch('/api/users/avatar', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Avatar Updated",
+          description: "Your profile picture has been updated successfully.",
+        });
+        setShowAvatarDialog(false);
+        setAvatarFile(null);
+        setAvatarPreview(null);
+        // Refresh user data
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Upload Failed",
+          description: data.error || "Failed to upload avatar.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: "Network Error",
+        description: "Unable to connect to the server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const sections = [
     { id: "account", label: "Account", icon: User },
     { id: "privacy", label: "Privacy & Safety", icon: Shield },
@@ -233,7 +477,11 @@ const Settings = () => {
       <div>
         <h3 className="text-lg font-medium mb-4">Account Security</h3>
         <div className="space-y-3">
-          <Button variant="outline" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => setShowPasswordDialog(true)}
+          >
             <Lock className="h-4 w-4 mr-2" />
             Change Password
           </Button>
@@ -646,17 +894,141 @@ const Settings = () => {
               </CardHeader>
               <CardContent>
                 {renderContent()}
-                
-                <div className="flex justify-end mt-8 pt-6 border-t">
-                  <Button onClick={handleSave} variant="therapeutic">
-                    Save Changes
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* Password Change Dialog */}
+      <AlertDialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Password</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter your current password and choose a new secure password.
+              <div className="mt-2 text-xs text-muted-foreground">
+                Password must be at least 8 characters with uppercase, lowercase, number, and special character.
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="currentPassword"
+                  type={showPasswords.current ? "text" : "password"}
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  placeholder="Enter your current password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="newPassword">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showPasswords.new ? "text" : "password"}
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  placeholder="Enter your new password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showPasswords.confirm ? "text" : "password"}
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm your new password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePasswordChange}>
+              Change Password
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Avatar Upload Dialog */}
+<AlertDialog open={showAvatarDialog} onOpenChange={setShowAvatarDialog}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Upload Profile Picture</AlertDialogTitle>
+      <AlertDialogDescription>
+        Choose an image file to use as your profile picture. Max size 5MB.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <div className="space-y-4 py-4">
+      <div className="flex flex-col items-center gap-4">
+        {avatarPreview ? (
+          <img 
+            src={avatarPreview} 
+            alt="Avatar preview" 
+            className="h-32 w-32 rounded-full object-cover"
+          />
+        ) : (
+          <div className="h-32 w-32 rounded-full bg-muted flex items-center justify-center">
+            <User className="h-16 w-16 text-muted-foreground" />
+          </div>
+        )}
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={handleAvatarFileChange}
+          className="max-w-xs"
+        />
+      </div>
+    </div>
+    <AlertDialogFooter>
+      <AlertDialogCancel onClick={() => {
+        setAvatarFile(null);
+        setAvatarPreview(null);
+      }}>
+        Cancel
+      </AlertDialogCancel>
+      <AlertDialogAction 
+        onClick={handleAvatarUpload}
+        disabled={!avatarFile || isUploadingAvatar}
+      >
+        {isUploadingAvatar ? "Uploading..." : "Upload"}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
     </div>
   );
 };

@@ -159,7 +159,7 @@ const getCurrentUser = async (req, res) => {
     const userId = req.user.userId; // From auth middleware
     
     const query = `
-      SELECT user_id, username, email, created_at
+      SELECT user_id, username, email, COALESCE(avatar_url, '') as avatar_url, created_at
       FROM users
       WHERE user_id = $1;
     `;
@@ -206,11 +206,150 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+/**
+ * Update user avatar
+ */
+const updateAvatar = async (req, res) => {
+  try {
+    const userId = req.user.userId; // From auth middleware
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No avatar file provided' });
+    }
+
+    // Construct the avatar URL
+    const avatarUrl = `/uploads/${req.file.filename}`;
+
+    // Update user's avatar in database
+    const updateQuery = `
+      UPDATE users
+      SET avatar_url = $1
+      WHERE user_id = $2
+      RETURNING user_id, username, avatar_url;
+    `;
+    
+    const result = await pool.query(updateQuery, [avatarUrl, userId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({ 
+      message: 'Avatar updated successfully',
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error updating avatar:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+/**
+ * Remove user avatar
+ */
+const removeAvatar = async (req, res) => {
+  try {
+    const userId = req.user.userId; // From auth middleware
+
+    // Update user's avatar to null in database
+    const updateQuery = `
+      UPDATE users
+      SET avatar_url = NULL
+      WHERE user_id = $1
+      RETURNING user_id, username, avatar_url;
+    `;
+    
+    const result = await pool.query(updateQuery, [userId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({ 
+      message: 'Avatar removed successfully',
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error removing avatar:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+/**
+ * Change user password
+ */
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.userId; // From auth middleware
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required.' });
+    }
+
+    // Validate new password strength
+    const passwordErrors = validatePassword(newPassword);
+    if (passwordErrors.length > 0) {
+      return res.status(400).json({
+        error: 'New password does not meet requirements',
+        errors: passwordErrors
+      });
+    }
+
+    // Get current user's password hash
+    const userQuery = 'SELECT password_hash FROM users WHERE user_id = $1';
+    const userResult = await pool.query(userQuery, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    // Verify current password
+    const passwordMatches = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!passwordMatches) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Check if new password is same as current
+    const sameAsOld = await bcrypt.compare(newPassword, user.password_hash);
+    if (sameAsOld) {
+      return res.status(400).json({ error: 'New password must be different from current password' });
+    }
+
+    // Hash the new password
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password in database
+    const updateQuery = `
+      UPDATE users
+      SET password_hash = $1
+      WHERE user_id = $2
+      RETURNING user_id, username;
+    `;
+    
+    const result = await pool.query(updateQuery, [newPasswordHash, userId]);
+
+    res.status(200).json({ 
+      message: 'Password changed successfully',
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 
 // Remember to export both functions so the router can use them.
 module.exports = {
   createUser,
   loginUser,
   getCurrentUser,
-  deleteUser
+  deleteUser,
+  changePassword,
+  updateAvatar,
+  removeAvatar
 };

@@ -1,4 +1,17 @@
--- PostgreSQL Schema for a Community-Based Mental Health Web App
+INSERT INTO users (
+    user_id,
+    username,
+    email,
+    password_hash,
+    created_at
+  )
+VALUES (
+    'user_id:uuid',
+    'username:character varying',
+    'email:character varying',
+    'password_hash:character varying',
+    'created_at:timestamp with time zone'
+  );-- PostgreSQL Schema for a Community-Based Mental Health Web App
 
 -- This script creates all the necessary tables, relationships, and indexes.
 
@@ -261,3 +274,4 @@ CREATE INDEX idx_comments_post_id ON comments(post_id);
 CREATE INDEX idx_votes_post_id ON votes(post_id);
 
 CREATE INDEX idx_votes_comment_id ON votes(comment_id);
+

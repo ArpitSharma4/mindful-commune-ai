@@ -61,15 +61,40 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
       const data = await response.json();
 
       if (response.ok) {
-        // Store the JWT token and user data
+        // Store the JWT token
         localStorage.setItem('authToken', data.token);
         
-        // Decode the JWT to get user info (username, userId)
-        const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
-        localStorage.setItem('userData', JSON.stringify({
-          userId: tokenPayload.userId,
-          username: tokenPayload.username
-        }));
+        // Fetch full user data including avatar
+        try {
+          const userResponse = await fetch('/api/users/me', {
+            headers: {
+              'Authorization': `Bearer ${data.token}`
+            }
+          });
+          
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            localStorage.setItem('userData', JSON.stringify({
+              userId: userData.user_id,
+              username: userData.username,
+              avatar_url: userData.avatar_url
+            }));
+          } else {
+            // Fallback to JWT data if user fetch fails
+            const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+            localStorage.setItem('userData', JSON.stringify({
+              userId: tokenPayload.userId,
+              username: tokenPayload.username
+            }));
+          }
+        } catch (error) {
+          // Fallback to JWT data if user fetch fails
+          const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+          localStorage.setItem('userData', JSON.stringify({
+            userId: tokenPayload.userId,
+            username: tokenPayload.username
+          }));
+        }
         
         onLoginSuccess();
       } else {

@@ -320,17 +320,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
           </p>
         </div>
 
-        {/* Create Post Button */}
-        <div className={`flex justify-center ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.6s' }}>
-          <Button 
-            variant="therapeutic" 
-            size="lg" 
-            className="shadow-therapeutic w-full sm:w-auto max-w-xs sm:max-w-none transition-all duration-300 hover:scale-105 hover:shadow-lg"
-            onClick={handleShareStory}
-          >
-            Create Post
-          </Button>
-        </div>
+       
 
         {/* Feed Tabs */}
         <Tabs defaultValue="trending" className={`w-full ${disableAnimations ? '' : 'animate-fade-in'}`} style={disableAnimations ? undefined : { animationDelay: '0.8s' }} onValueChange={setActiveTab}>

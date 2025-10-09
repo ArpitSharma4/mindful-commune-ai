@@ -2,11 +2,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Calendar, Settings, LogOut, Edit, Shield } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import AvatarEditModal from "./AvatarEditModal";
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -16,14 +17,48 @@ interface UserProfileModalProps {
 const UserProfileModal = ({ isOpen, onClose }: UserProfileModalProps) => {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [profileData, setProfileData] = useState({
     name: "John Doe",
     email: "john.doe@example.com",
     joinDate: "January 2024",
     bio: "Mental health advocate and mindfulness enthusiast. Sharing my journey to help others find their path to wellness.",
     location: "San Francisco, CA",
-    website: "https://johndoe.com"
+    website: "https://johndoe.com",
+    avatar: ""
   });
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          const response = await fetch('/api/users/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            setProfileData(prev => ({
+              ...prev,
+              name: userData.username,
+              email: userData.email,
+              avatar: userData.avatar_url || ""
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    
+    if (isOpen) {
+      fetchUserData();
+    }
+  }, [isOpen]);
 
   const handleSave = () => {
     toast({
@@ -31,6 +66,13 @@ const UserProfileModal = ({ isOpen, onClose }: UserProfileModalProps) => {
       description: "Your profile has been saved successfully.",
     });
     setIsEditing(false);
+  };
+
+  const handleAvatarUpdate = (newAvatarUrl: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      avatar: newAvatarUrl
+    }));
   };
 
   const handleLogout = () => {
@@ -57,19 +99,19 @@ const UserProfileModal = ({ isOpen, onClose }: UserProfileModalProps) => {
           <div className="text-center space-y-4">
             <div className="relative inline-block">
               <Avatar className="h-24 w-24 mx-auto">
+                <AvatarImage src={profileData.avatar} />
                 <AvatarFallback className="text-2xl bg-gradient-primary text-primary-foreground">
                   {profileData.name[0]}
                 </AvatarFallback>
               </Avatar>
-              {isEditing && (
-                <Button
-                  size="sm"
-                  className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
-                  onClick={() => {/* Handle avatar upload */}}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              )}
+              <Button
+                size="sm"
+                className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+                onClick={() => setShowAvatarModal(true)}
+                title="Edit Avatar"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
             </div>
             
             <div className="space-y-2">
@@ -191,6 +233,15 @@ const UserProfileModal = ({ isOpen, onClose }: UserProfileModalProps) => {
           </div>
         </div>
       </DialogContent>
+      
+      {/* Avatar Edit Modal */}
+      <AvatarEditModal
+        isOpen={showAvatarModal}
+        onClose={() => setShowAvatarModal(false)}
+        currentAvatar={profileData.avatar}
+        username={profileData.name}
+        onAvatarUpdate={handleAvatarUpdate}
+      />
     </Dialog>
   );
 };

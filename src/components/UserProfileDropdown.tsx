@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { 
   User, 
@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import LoginModal from "./LoginModal";
+import AvatarEditModal from "./AvatarEditModal";
 
 interface UserProfileDropdownProps {
   isOpen: boolean;
@@ -24,10 +25,12 @@ interface UserProfileDropdownProps {
 const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
   const { toast } = useToast();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [showAvatarDialog, setShowAvatarDialog] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState<{
     username: string;
     userId: number;
+    avatar_url?: string;
   } | null>(null);
 
   // Check authentication status on component mount and listen for changes
@@ -124,6 +127,15 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
     onClose();
   };
 
+  const handleAvatarUpdate = (newAvatarUrl: string) => {
+    if (userData) {
+      setUserData(prev => prev ? { ...prev, avatar_url: newAvatarUrl } : null);
+      // Update localStorage
+      const updatedUserData = { ...userData, avatar_url: newAvatarUrl };
+      localStorage.setItem('userData', JSON.stringify(updatedUserData));
+    }
+  };
+
   // Generate initials from username
   const getInitials = (username: string) => {
     return username
@@ -155,11 +167,18 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
         <div className="p-4 space-y-3">
           {/* User Info */}
           <div className="flex items-center gap-3 pb-3 border-b">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                {getInitials(userData.username)}
-              </AvatarFallback>
-            </Avatar>
+            <button 
+              onClick={() => setShowAvatarDialog(true)}
+              className="hover:opacity-80 transition-opacity"
+              title="Edit Avatar"
+            >
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={userData.avatar_url} />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                  {getInitials(userData.username)}
+                </AvatarFallback>
+              </Avatar>
+            </button>
             <div className="flex-1">
               <div className="font-medium">
                 {userData.username}
@@ -178,56 +197,52 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Edit Avatar")}
+              onClick={() => handleMenuItem("My Posts")}
             >
-              <Edit className="h-4 w-4" />
-              <span>Edit Avatar</span>
+              <FileText className="h-4 w-4" />
+              <span>My Posts</span>
             </Button>
 
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Streaks")}
+              onClick={() => handleMenuItem("Achievements")}
             >
               <Trophy className="h-4 w-4" />
-              <div className="flex-1 text-left">
-                <span>Streaks</span>
-                <div className="text-xs text-muted-foreground">5 unlocked</div>
-              </div>
+              <span>Achievements</span>
             </Button>
 
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Earn")}
+              onClick={() => handleMenuItem("Analytics")}
             >
               <TrendingUp className="h-4 w-4" />
-              <div className="flex-1 text-left">
-                <span>Earn</span>
-                <div className="text-xs text-muted-foreground">Earn rewards on EchoWell</div>
-              </div>
+              <span>Analytics</span>
             </Button>
 
-            <Link to="/settings" onClick={onClose}>
+            <Link to="/settings">
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 h-auto p-3"
+                onClick={onClose}
               >
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>
               </Button>
             </Link>
+          </div>
 
-            <div className="border-t pt-3">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-3 h-auto p-3 text-destructive hover:text-destructive"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Log Out</span>
-              </Button>
-            </div>
+          {/* Logout */}
+          <div className="pt-3 border-t">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-auto p-3 text-destructive hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Log Out</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -236,6 +251,15 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* Avatar Edit Modal */}
+      <AvatarEditModal
+        isOpen={showAvatarDialog}
+        onClose={() => setShowAvatarDialog(false)}
+        currentAvatar={userData?.avatar_url || ""}
+        username={userData?.username || ""}
+        onAvatarUpdate={handleAvatarUpdate}
       />
     </>
   );
