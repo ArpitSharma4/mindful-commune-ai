@@ -8,6 +8,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ChevronUp, ChevronDown, MessageCircle, Share2, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -36,6 +46,7 @@ interface JournalPostProps {
   community?: string;
   imageUrl?: string;
   disableAnimations?: boolean;
+  onPostDeleted?: (postId: string) => void;
 }
 
 const JournalPost = ({ 
@@ -58,7 +69,8 @@ const JournalPost = ({
   tags = [],
   community,
   imageUrl,
-  disableAnimations
+  disableAnimations,
+  onPostDeleted
 }: JournalPostProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -87,6 +99,12 @@ const JournalPost = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [showUndo, setShowUndo] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const [deletionTimeout, setDeletionTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (disableAnimations) {
@@ -96,6 +114,76 @@ const JournalPost = ({
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
   }, [disableAnimations]);
+
+  // Handle countdown and deletion
+  useEffect(() => {
+    if (showUndo && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (showUndo && countdown === 0) {
+      // Countdown reached 0, proceed with deletion
+      const timeout = setTimeout(async () => {
+        try {
+          const token = localStorage.getItem('authToken');
+          
+          if (!token) {
+            toast({
+              title: "Authentication Required",
+              description: "Please log in to delete posts.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const response = await fetch(`/api/posts/${postId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            setShowUndo(false);
+            if (onPostDeleted && postId) {
+              onPostDeleted(postId);
+            }
+          } else {
+            // If deletion fails, restore the post
+            setIsDeleted(false);
+            setShowUndo(false);
+            toast({
+              title: "Delete Failed",
+              description: "Unable to delete post. Please try again.",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error('Error deleting post:', error);
+          setIsDeleted(false);
+          setShowUndo(false);
+          toast({
+            title: "Network Error",
+            description: "Unable to connect to the server. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }, 500); // Small delay to show countdown at 0
+      
+      setDeletionTimeout(timeout);
+      return () => clearTimeout(timeout);
+    }
+  }, [showUndo, countdown, postId, onPostDeleted, toast]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (deletionTimeout) {
+        clearTimeout(deletionTimeout);
+      }
+    };
+  }, [deletionTimeout]);
 
   const handleVote = async (voteType: 1 | -1) => {
     if (!postId || isVoting) return;
@@ -189,6 +277,45 @@ const JournalPost = ({
     window.location.reload(); // Simple approach for now
   };
 
+  const handleDeletePost = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeletePost = () => {
+    if (!postId || isDeleting) return;
+    
+    // First, show the deleted state with undo option
+    setIsDeleted(true);
+    setShowUndo(true);
+    setCountdown(5);
+    setShowDeleteDialog(false);
+    
+    toast({
+      title: "Post Deleted! 🗑️",
+      description: "Your post has been deleted. You can undo this action within 5 seconds.",
+      duration: 5000,
+    });
+  };
+
+  const handleUndoDelete = () => {
+    // Cancel any pending deletion timeout
+    if (deletionTimeout) {
+      clearTimeout(deletionTimeout);
+      setDeletionTimeout(null);
+    }
+    
+    // Cancel the deletion by restoring the UI state
+    setIsDeleted(false);
+    setShowUndo(false);
+    setCountdown(5);
+    
+    toast({
+      title: "Post Restored! ↩️",
+      description: "Your post has been restored.",
+      duration: 3000,
+    });
+  };
+
   const handleExpand = () => {
     setIsExpanded(!isExpanded);
   };
@@ -202,7 +329,7 @@ const JournalPost = ({
   };
 
   return (
-    <Card className={`w-full bg-gradient-card hover:shadow-therapeutic transition-all duration-500 transform hover:scale-[1.02] ${disableAnimations ? '' : (isVisible ? 'animate-fade-in opacity-100' : 'opacity-0')} ${isExpanded ? 'shadow-lg' : ''}`}>
+    <Card className={`w-full bg-gradient-card hover:shadow-therapeutic transition-all duration-500 transform hover:scale-[1.02] ${disableAnimations ? '' : (isVisible ? 'animate-fade-in opacity-100' : 'opacity-0')} ${isExpanded ? 'shadow-lg' : ''} ${isDeleted ? 'opacity-50 bg-muted/50' : ''}`}>
       <CardContent className="p-6">
         <div className="flex gap-4">
           {/* Vote Section */}
@@ -260,7 +387,10 @@ const JournalPost = ({
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Post
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">
+                  <DropdownMenuItem 
+                    onClick={handleDeletePost}
+                    className="text-destructive focus:text-destructive"
+                  >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete Post
                   </DropdownMenuItem>
@@ -347,6 +477,28 @@ const JournalPost = ({
         </div>
       </CardContent>
 
+      {/* Undo Delete Overlay */}
+      {isDeleted && showUndo && (
+        <div className="px-6 py-4 border-t bg-destructive/10 border-destructive/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-destructive rounded-full animate-pulse"></div>
+              <span className="text-sm text-destructive font-medium">
+                Post deleted • You have {countdown} seconds to undo
+              </span>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleUndoDelete}
+              className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
+              Undo
+            </Button>
+          </div>
+        </div>
+      )}
+
       <CardFooter className="px-6 py-4 border-t bg-muted/30 backdrop-blur-sm">
         <div className="flex justify-between items-center w-full">
           <div className="flex gap-4">
@@ -380,6 +532,29 @@ const JournalPost = ({
           onPostUpdated={handlePostUpdated}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone. 
+              All comments and votes associated with this post will also be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeletePost}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete Post"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

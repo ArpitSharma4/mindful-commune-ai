@@ -186,6 +186,16 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
       duration: 3000,
     });
   };
+
+  const handlePostDeleted = (deletedPostId: string) => {
+    // Remove the deleted post from the posts array
+    setPosts(prevPosts => prevPosts.filter(post => post.post_id !== deletedPostId && post.id !== deletedPostId));
+    toast({
+      title: "Post Deleted! 🗑️",
+      description: "The post has been removed from the feed.",
+      duration: 3000,
+    });
+  };
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setIsLoading(true);
@@ -354,7 +364,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
                   className={disableAnimations ? '' : 'animate-fade-in'}
                   style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                 >
-                  <PostFeatures {...post} disableAnimations={disableAnimations} />
+                  <PostFeatures {...post} disableAnimations={disableAnimations} onPostDeleted={handlePostDeleted} />
                 </div>
               ))
             ) : searchTerm ? (
@@ -384,7 +394,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
                   className={disableAnimations ? '' : 'animate-fade-in'}
                   style={disableAnimations ? undefined : { animationDelay: `${index * 0.1}s` }}
                 >
-                  <PostFeatures {...post} disableAnimations={disableAnimations} />
+                  <PostFeatures {...post} disableAnimations={disableAnimations} onPostDeleted={handlePostDeleted} />
                 </div>
               ))
             ) : (
