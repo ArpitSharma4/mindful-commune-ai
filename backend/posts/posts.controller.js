@@ -347,13 +347,44 @@ const getPostById = async (req, res) => {
   }
 };
 
+const deletePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.userId;
 
+    const authorQuery = 'SELECT author_id FROM posts WHERE post_id = $1';
+    const authorResult = await pool.query(authorQuery, [postId]);
+
+    if (authorResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    const originalAuthorId = authorResult.rows[0].author_id;
+
+    if (originalAuthorId !== userId) {
+      return res.status(403).json({ error: 'Forbidden: You are not the author of this post.' });
+    }
+
+    const deleteQuery = 'DELETE FROM posts WHERE post_id = $1';
+    await pool.query(deleteQuery, [postId]);
+
+    res.status(200).json({ message: 'Post and all associated comments and votes have been deleted.' });
+
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// that contains ALL of the controller functions.
 module.exports = {
   createPost,
   getPostsByCommunity,
   voteOnPost,
   updatePost,
-  getPostById,
   getTrendingPosts,
   getRecentPosts,
+  getPostById,
+  deletePost,
 };
+

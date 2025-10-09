@@ -9,7 +9,8 @@ const {
   updatePost, 
   getPostById,
   getTrendingPosts,
-  getRecentPosts
+  getRecentPosts,
+  deletePost
 } = require('./posts.controller');
 const authMiddleware = require('../middleware/auth');
 const commentRoutes = require('../comments/comments.route');
@@ -54,6 +55,8 @@ router.put('/:postId', authMiddleware, updatePost);
 // This tells Express to hand off requests for '/:postId/comments' to the comment router.
 router.use('/:postId/comments', commentRoutes);
 
+// --- Delete Post Route (Protected & Authorized) ---
+router.delete('/:postId', authMiddleware, deletePost);
 
 module.exports = router;
 
