@@ -260,11 +260,98 @@ const getRecentPosts = async (req, res) => {
   }
 };
 
+/**
+ * Updates a post's title and/or content. (Protected & Authorized)
+ */
+const updatePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { title, content } = req.body;
+    const userId = req.user.userId; // ID of the user making the request
+
+    // 1. Authorization Check: First, get the post's original author ID
+    const authorQuery = 'SELECT author_id FROM posts WHERE post_id = $1';
+    const authorResult = await pool.query(authorQuery, [postId]);
+
+    if (authorResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    const originalAuthorId = authorResult.rows[0].author_id;
+
+    // 2. Compare the post's author with the logged-in user
+    if (originalAuthorId !== userId) {
+      // If they don't match, this user is not authorized.
+      return res.status(403).json({ error: 'Forbidden: You are not the author of this post.' });
+    }
+    
+    // 3. If authorized, proceed with the update
+    // We'll update only the fields that are provided in the request body
+    const updateQuery = `
+      UPDATE posts
+      SET 
+        title = COALESCE($1, title), 
+        content = COALESCE($2, content),
+        updated_at = NOW()
+      WHERE post_id = $3
+      RETURNING *;
+    `;
+    const updatedPostResult = await pool.query(updateQuery, [title, content, postId]);
+
+    res.status(200).json(updatedPostResult.rows[0]);
+
+  } catch (error) {
+    console.error('Error updating post:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+/**
+ * Fetches a single post by its ID, including author, vote, and comment info.
+ * This is a public action.
+ */
+const getPostById = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    // 1. This query fetches the post, joins to get the author's username,
+    // and uses subqueries to efficiently calculate the vote score and comment count.
+    const query = `
+      SELECT 
+        p.*, 
+        u.username AS author_username,
+        (SELECT COALESCE(SUM(v.vote_type), 0) FROM votes v WHERE v.post_id = p.post_id) AS vote_score,
+        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) AS comment_count
+      FROM posts p
+      JOIN users u ON p.author_id = u.user_id
+      WHERE p.post_id = $1;
+    `;
+    const result = await pool.query(query, [postId]);
+
+    // 2. Handle the case where no post is found with the given ID.
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Post not found.' });
+    }
+
+    const post = result.rows[0];
+
+    // 3. Parse the counts from string (from DB) to integer for the JSON response.
+    post.vote_score = parseInt(post.vote_score, 10);
+    post.comment_count = parseInt(post.comment_count, 10);
+
+    res.status(200).json(post);
+
+  } catch (error) {
+    console.error('Error fetching post by ID:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
 module.exports = {
   createPost,
   getPostsByCommunity,
   voteOnPost,
-  getTrendingPosts,
-  getRecentPosts,
+  updatePost,
+  getPostById,
 };
-

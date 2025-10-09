@@ -1,9 +1,17 @@
 const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
-const { createPost, getPostsByCommunity, voteOnPost, getTrendingPosts, getRecentPosts } = require('./posts.controller');
+// 1. Import the updated list of controller functions, including 'updatePost'
+const { 
+  createPost, 
+  getPostsByCommunity, 
+  voteOnPost, 
+  updatePost, 
+  getPostById
+
+} = require('./posts.controller');
 const authMiddleware = require('../middleware/auth');
-const commentRoutes = require('../comments/comments.route'); // <-- 1. Import the comment router
+const commentRoutes = require('../comments/comments.route');
 
 const router = Router();
 
@@ -17,30 +25,28 @@ const storage = multer.diskStorage({
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
-
 const upload = multer({ storage: storage });
 
 
 // --- Post-Specific Routes ---
+
 // Creates a new post in a specific community (Protected)
 router.post('/in/:communityId', authMiddleware, upload.single('media'), createPost);
 
 // Gets all posts for a specific community (Public)
 router.get('/in/:communityId', getPostsByCommunity);
 
-// Gets trending posts across all communities (Public)
-router.get('/trending', getTrendingPosts);
-
-// Gets recent posts across all communities (Public)
-router.get('/recent', getRecentPosts);
+// This will handle requests like GET /api/posts/some-post-uuid
+router.get('/:postId', getPostById);
 
 // Casts a vote on a specific post (Protected)
 router.post('/:postId/vote', authMiddleware, voteOnPost);
 
+// 2. Add the new route for updating a post (Protected & Authorized)
+router.put('/:postId', authMiddleware, updatePost);
 
 // --- Nested Comment Routes ---
-// 2. This line tells Express: "For any request that matches '/:postId/comments',
-//    hand it over to the commentRoutes file to handle it from there."
+// This tells Express to hand off requests for '/:postId/comments' to the comment router.
 router.use('/:postId/comments', commentRoutes);
 
 
