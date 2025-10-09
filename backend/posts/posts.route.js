@@ -7,8 +7,9 @@ const {
   getPostsByCommunity, 
   voteOnPost, 
   updatePost, 
-  getPostById
-
+  getPostById,
+  getTrendingPosts,
+  getRecentPosts
 } = require('./posts.controller');
 const authMiddleware = require('../middleware/auth');
 const commentRoutes = require('../comments/comments.route');
@@ -35,6 +36,10 @@ router.post('/in/:communityId', authMiddleware, upload.single('media'), createPo
 
 // Gets all posts for a specific community (Public)
 router.get('/in/:communityId', getPostsByCommunity);
+
+// Global feed endpoints
+router.get('/trending', getTrendingPosts);
+router.get('/recent', getRecentPosts);
 
 // This will handle requests like GET /api/posts/some-post-uuid
 router.get('/:postId', getPostById);

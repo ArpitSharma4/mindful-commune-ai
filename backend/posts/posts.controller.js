@@ -354,4 +354,6 @@ module.exports = {
   voteOnPost,
   updatePost,
   getPostById,
+  getTrendingPosts,
+  getRecentPosts,
 };
