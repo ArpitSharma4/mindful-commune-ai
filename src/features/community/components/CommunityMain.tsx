@@ -350,6 +350,21 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
               Recent
             </TabsTrigger>
           </TabsList>
+          
+          {/* Create Post Button for Global Feed */}
+          {isGlobalFeed && (
+            <div className="flex justify-center mb-6">
+              <Button
+                onClick={handleShareStory}
+                className="shadow-therapeutic transition-all duration-300 hover:scale-105"
+                size="lg"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Post
+              </Button>
+            </div>
+          )}
+          
           <TabsContent value="trending" className="space-y-6">
             {isLoading ? (
               <div className="space-y-6">

@@ -120,6 +120,12 @@ const getCommunityById = async (req, res) => {
     community.member_count = parseInt(community.member_count, 10);
     community.post_count = parseInt(community.post_count, 10);
 
+    console.log('Community data for ID', communityId, ':', {
+      name: community.name,
+      member_count: community.member_count,
+      post_count: community.post_count
+    });
+
     res.status(200).json(community);
   } catch (error) {
     console.error('Error fetching community by ID:', error);
@@ -136,7 +142,11 @@ const getJoinedCommunities = async (req, res) => {
     console.log('Fetching joined communities for user ID:', userId);
     
     const joinedCommunitiesQuery = `
-      SELECT c.*, u.username AS creator_username
+      SELECT 
+        c.*, 
+        u.username AS creator_username,
+        (SELECT COUNT(*) FROM community_members cm2 WHERE cm2.community_id = c.community_id) AS member_count,
+        (SELECT COUNT(*) FROM posts p WHERE p.community_id = c.community_id) AS post_count
       FROM communities c
       JOIN community_members cm ON c.community_id = cm.community_id
       JOIN users u ON c.creator_id = u.user_id
@@ -147,7 +157,21 @@ const getJoinedCommunities = async (req, res) => {
     console.log('Found joined communities:', joinedCommunities.rows.length);
     console.log('Joined community IDs:', joinedCommunities.rows.map(c => c.community_id));
     
-    res.status(200).json(joinedCommunities.rows);
+    // Parse counts from string to integer for each community
+    const communities = joinedCommunities.rows;
+    communities.forEach(community => {
+      community.member_count = parseInt(community.member_count, 10);
+      community.post_count = parseInt(community.post_count, 10);
+    });
+    
+    console.log('Joined communities with counts:', communities.map(c => ({
+      id: c.community_id,
+      name: c.name,
+      member_count: c.member_count,
+      post_count: c.post_count
+    })));
+    
+    res.status(200).json(communities);
   } catch (error) {
     console.error('Error fetching joined communities:', error);
     res.status(500).json({ error: 'Internal Server Error' });

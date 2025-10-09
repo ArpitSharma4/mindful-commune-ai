@@ -40,6 +40,8 @@ const CommunityDetail = () => {
       if (response.ok) {
         const data = await response.json();
         console.log('Community detail data:', data);
+        console.log('Member count:', data.member_count);
+        console.log('Post count:', data.post_count);
         setCommunity(data);
       } else if (response.status === 404) {
         console.error('Community not found - 404');
@@ -339,11 +341,11 @@ const CommunityDetail = () => {
                   <div className="flex items-center gap-6 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      <span>{community.member_count || 0} members</span>
+                      <span>{community.member_count ?? 0} members</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <MessageSquare className="h-4 w-4" />
-                      <span>{community.post_count || 0} posts</span>
+                      <span>{community.post_count ?? 0} posts</span>
                     </div>
                     <Badge variant="outline" className="text-xs">
                       #{community.slug}

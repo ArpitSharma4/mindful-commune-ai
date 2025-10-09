@@ -33,7 +33,9 @@ console.log('✅ ALL COMMUNITIES FETCHED:', data.length, 'communities');
 console.log('📋 Communities:', data.map(c => ({ 
   id: c.community_id, 
   name: c.name, 
-  creator: c.creator_username 
+  creator: c.creator_username,
+  member_count: c.member_count,
+  post_count: c.post_count
 })));
 setCommunities(data);
       } else {
@@ -85,6 +87,12 @@ setCommunities(data);
       if (response.ok) {
         const data = await response.json();
         console.log('Joined communities data received:', data);
+        console.log('Joined communities with counts:', data.map(c => ({ 
+          id: c.community_id, 
+          name: c.name, 
+          member_count: c.member_count,
+          post_count: c.post_count
+        })));
         
         setJoinedCommunitiesData(data);
         
@@ -408,11 +416,11 @@ console.log('- Discover list:', filteredCommunities.map(c => ({
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Users className="h-4 w-4" />
-                                <span>0 members</span>
+                                <span>{community.member_count ?? 0} members</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <MessageSquare className="h-4 w-4" />
-                                <span>0 posts</span>
+                                <span>{community.post_count ?? 0} posts</span>
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-1">
@@ -504,11 +512,11 @@ console.log('- Discover list:', filteredCommunities.map(c => ({
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Users className="h-4 w-4" />
-                                <span>0 members</span>
+                                <span>{community.member_count ?? 0} members</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <MessageSquare className="h-4 w-4" />
-                                <span>0 posts</span>
+                                <span>{community.post_count ?? 0} posts</span>
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-1">

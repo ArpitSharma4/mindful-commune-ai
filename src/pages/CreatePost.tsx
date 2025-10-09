@@ -512,37 +512,52 @@ const CreatePost = () => {
 
                 {/* Community Selection */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">Select a community *</Label>
+                  <Label className="text-sm font-medium">
+                    {isFromCommunityPage ? 'Community' : 'Select a community'} *
+                  </Label>
                   <div className="space-y-2">
-                    <Select
-                      value={selectedCommunity}
-                      onValueChange={setSelectedCommunity}
-                      disabled={isLoadingCommunities}
-                    >
-                      <SelectTrigger className="bg-muted/50 border-border focus:border-primary transition-colors">
-                        <SelectValue placeholder="Choose a community" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {communities.length > 0 ? (
-                          communities.map((community) => (
-                            <SelectItem 
-                              key={community.community_id} 
-                              value={community.community_id}
-                            >
-                              r/{community.name}
+                    {isFromCommunityPage ? (
+                      <div className="flex items-center gap-2 p-3 bg-muted/50 border border-border rounded-md">
+                        <Leaf className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">r/{lockedCommunityName}</span>
+                        <span className="text-xs text-muted-foreground ml-auto">Locked</span>
+                      </div>
+                    ) : (
+                      <Select
+                        value={selectedCommunity}
+                        onValueChange={setSelectedCommunity}
+                        disabled={isLoadingCommunities}
+                      >
+                        <SelectTrigger className="bg-muted/50 border-border focus:border-primary transition-colors">
+                          <SelectValue placeholder="Choose a community" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {communities.length > 0 ? (
+                            communities.map((community) => (
+                              <SelectItem 
+                                key={community.community_id} 
+                                value={community.community_id}
+                              >
+                                r/{community.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-communities" disabled>
+                              No communities available
                             </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-communities" disabled>
-                            No communities available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {isLoadingCommunities && (
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {isFromCommunityPage && (
+                      <p className="text-xs text-muted-foreground">
+                        Posting to r/{lockedCommunityName} - community is pre-selected
+                      </p>
+                    )}
+                    {!isFromCommunityPage && isLoadingCommunities && (
                       <p className="text-xs text-muted-foreground">Loading communities...</p>
                     )}
-                    {!isLoadingCommunities && communities.length === 0 && (
+                    {!isFromCommunityPage && !isLoadingCommunities && communities.length === 0 && (
                       <p className="text-xs text-muted-foreground">No communities found. Please create one first.</p>
                     )}
                   </div>
