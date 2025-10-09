@@ -2,10 +2,18 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ChevronUp, ChevronDown, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronUp, ChevronDown, MessageCircle, Share2, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import CommentSection from "@/components/CommentSection";
+import EditPostModal from "@/components/EditPostModal";
 
 interface JournalPostProps {
   post_id?: string;
@@ -53,6 +61,7 @@ const JournalPost = ({
   disableAnimations
 }: JournalPostProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const postId = post_id || id;
   const authorName = is_posted_anonymously ? "Anonymous" : (author_username || author);
@@ -77,6 +86,7 @@ const JournalPost = ({
   const [isVoting, setIsVoting] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     if (disableAnimations) {
@@ -169,11 +179,14 @@ const JournalPost = ({
     });
   };
 
-  const handleMoreOptions = () => {
-    toast({
-      title: "More options",
-      description: "Opening post options...",
-    });
+  const handleEditPost = () => {
+    setShowEditModal(true);
+  };
+
+  const handlePostUpdated = (updatedTitle: string, updatedContent: string) => {
+    // Update the post data in the parent component
+    // This will be handled by the parent component's state management
+    window.location.reload(); // Simple approach for now
   };
 
   const handleExpand = () => {
@@ -182,6 +195,11 @@ const JournalPost = ({
 
   const truncatedContent = content.length > 200 ? content.substring(0, 200) + "..." : content;
   const shouldShowReadMore = content.length > 200;
+
+  const goToDetail = () => {
+    if (!postId) return;
+    navigate(`/post/${postId}`);
+  };
 
   return (
     <Card className={`w-full bg-gradient-card hover:shadow-therapeutic transition-all duration-500 transform hover:scale-[1.02] ${disableAnimations ? '' : (isVisible ? 'animate-fade-in opacity-100' : 'opacity-0')} ${isExpanded ? 'shadow-lg' : ''}`}>
@@ -231,21 +249,40 @@ const JournalPost = ({
                   <span className="ml-2">• {community || "r/Community"}</span>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleMoreOptions}>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleEditPost}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Post
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Title */}
-            <h3 className="text-lg font-semibold leading-tight">
-              {title}
-            </h3>
+            <button onClick={goToDetail} className="text-left w-full">
+              <h3 className="text-lg font-semibold leading-tight hover:underline">
+                {title}
+              </h3>
+            </button>
 
             {/* Content */}
             <div className="text-sm text-foreground leading-relaxed">
-              <div className={`transition-all duration-300 ${isExpanded ? 'max-h-none' : 'max-h-32 overflow-hidden'}`}>
-                {isExpanded ? content : truncatedContent}
-              </div>
+              <div 
+                className={`transition-all duration-300 ${isExpanded ? 'max-h-none' : 'max-h-32 overflow-hidden'} prose prose-sm max-w-none`}
+                dangerouslySetInnerHTML={{ 
+                  __html: isExpanded ? content : truncatedContent 
+                }}
+              />
               {shouldShowReadMore && (
                 <button 
                   onClick={handleExpand}
@@ -258,7 +295,7 @@ const JournalPost = ({
 
             {/* Media if present */}
             {processedImageUrl && (
-              <div className="rounded-lg overflow-hidden bg-muted/20">
+              <div className="rounded-lg overflow-hidden bg-muted/20 cursor-pointer" onClick={goToDetail}>
                 {!imageError ? (
                   <>
                     {!imageLoaded && (
@@ -330,6 +367,18 @@ const JournalPost = ({
             onCommentCountChange={handleCommentCountChange}
           />
         </div>
+      )}
+
+      {/* Edit Post Modal */}
+      {postId && (
+        <EditPostModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          postId={postId}
+          currentTitle={title}
+          currentContent={content}
+          onPostUpdated={handlePostUpdated}
+        />
       )}
     </Card>
   );
