@@ -5,7 +5,7 @@
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(API error : );
+    throw new Error(`API error: ${response.status} ${response.statusText}${text ? ` - ${text}` : ''}`);
   }
   return response.json() as Promise<T>;
 }

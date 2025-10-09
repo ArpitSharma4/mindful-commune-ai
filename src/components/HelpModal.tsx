@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Heart, Shield, Users, TrendingUp, Mail, Send } from "lucide-react";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/apiClient";
+import { useToast } from "@/components/ui/use-toast";
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -21,14 +22,26 @@ const HelpModal = ({ isOpen, onClose }: HelpModalProps) => {
     message: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Message Sent! 💙",
-      description: "Thank you for reaching out. We'll get back to you within 24 hours.",
-    });
-    setContactForm({ name: "", email: "", subject: "", message: "" });
-    onClose();
+    try {
+      await apiRequest(`${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/support/contact`, {
+        method: "POST",
+        body: JSON.stringify(contactForm),
+      });
+      toast({
+        title: "Message Sent! 💙",
+        description: "Thank you for reaching out. We'll get back to you within 24 hours.",
+      });
+      setContactForm({ name: "", email: "", subject: "", message: "" });
+      onClose();
+    } catch (err: any) {
+      toast({
+        title: "Failed to send",
+        description: err?.message || "Please try again later.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {

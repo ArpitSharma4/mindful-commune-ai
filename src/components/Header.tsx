@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import HelpModal from "./HelpModal";
 import UserProfileDropdown from "./UserProfileDropdown";
 import LoginModal from "./LoginModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Header = () => {
   const { toast } = useToast();
@@ -15,14 +16,27 @@ const Header = () => {
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState<{ username: string; userId: number; avatar_url?: string } | null>(null);
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   // Check authentication status on component mount and listen for changes
   useEffect(() => {
     const checkAuthStatus = () => {
       const token = localStorage.getItem('authToken');
-      const userData = localStorage.getItem('userData');
-      setIsLoggedIn(!!(token && userData));
+      const storedUserData = localStorage.getItem('userData');
+      if (token && storedUserData) {
+        try {
+          const parsed = JSON.parse(storedUserData);
+          setUserData(parsed);
+          setIsLoggedIn(true);
+        } catch {
+          setUserData(null);
+          setIsLoggedIn(false);
+        }
+      } else {
+        setUserData(null);
+        setIsLoggedIn(false);
+      }
     };
 
     // Initial check
@@ -109,8 +123,17 @@ const Header = () => {
             <HelpCircle className="h-4 w-4" />
           </Button>
           {isLoggedIn ? (
-            <Button variant="gentle" size="sm" className="text-base" onClick={handleUserProfile}>
-              <User className="h-4 w-4" />
+            <Button variant="gentle" size="sm" className="text-base p-0 h-8 w-8 rounded-md overflow-hidden" onClick={handleUserProfile}>
+              {userData?.avatar_url ? (
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={userData.avatar_url} />
+                  <AvatarFallback>
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <User className="h-4 w-4" />
+              )}
             </Button>
           ) : (
             <Button variant="therapeutic" size="sm" className="text-base" onClick={handleLogin}>

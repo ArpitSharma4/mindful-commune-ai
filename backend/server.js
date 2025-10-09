@@ -9,6 +9,7 @@ const fs = require('fs');
 const userRoutes = require('./users/users.route');
 const communityRoutes = require('./community/community.route');
 const postRoutes = require('./posts/posts.route'); // <-- Only import the main parent router
+const supportRoutes = require('./support/support.route');
 
 // ... (rest of your initial setup code) ...
 
@@ -39,6 +40,7 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/api/users', userRoutes);
 app.use('/api/communities', communityRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/support', supportRoutes);
 
 // ... (rest of your error handling and app.listen code) ...
 app.use((err, req, res, next) => {
