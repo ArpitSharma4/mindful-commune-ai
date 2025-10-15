@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, TrendingUp, AlignJustify, Compass, Globe } from "lucide-react";
+import { Home, Users, TrendingUp, AlignJustify, Compass, Globe, BookOpen } from "lucide-react";
 type LeftSidebarProps = {
   onClose?: () => void;
 };
@@ -38,6 +38,15 @@ const LeftSidebar = ({ onClose }: LeftSidebarProps) => {
         >
           <Compass className="h-4 w-4" />
           Explore
+        </Link>
+        <Link
+          to="/journaling"
+          className={`inline-flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            location.pathname === "/journaling" ? "bg-primary/10 text-primary" : "hover:bg-muted"
+          }`}
+        >
+          <BookOpen className="h-4 w-4" />
+          Journal
         </Link>
       </nav>
     </aside>

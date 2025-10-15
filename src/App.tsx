@@ -10,6 +10,7 @@ import Explore from "./pages/Explore";
 import CommunityDetail from "./pages/CommunityDetail";
 import CreatePost from "./pages/CreatePost";
 import PostDetail from "./pages/PostDetail";
+import Journaling from "./pages/Journaling";
 import Settings from "./components/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/community/:communityId" element={<CommunityDetail />} />
           <Route path="/create-post" element={<CreatePost />} />
           <Route path="/post/:postId" element={<PostDetail />} />
+          <Route path="/journaling" element={<Journaling />} />
           <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -257,7 +257,22 @@ COMMENT ON COLUMN votes.vote_type IS 'Represents the vote direction: 1 for upvot
 
 -- -----------------------------------------------------
 
--- Indexes for Performance
+-- Indexes for PerformanceINSERT INTO users (
+    user_id,
+    username,
+    email,
+    password_hash,
+    created_at,
+    avatar_url
+  )
+VALUES (
+    'user_id:uuid',
+    'username:character varying',
+    'email:character varying',
+    'password_hash:character varying',
+    'created_at:timestamp with time zone',
+    'avatar_url:text'
+  );
 
 -- Adding indexes to foreign keys and other frequently queried columns.
 
@@ -274,4 +289,27 @@ CREATE INDEX idx_comments_post_id ON comments(post_id);
 CREATE INDEX idx_votes_post_id ON votes(post_id);
 
 CREATE INDEX idx_votes_comment_id ON votes(comment_id);
+
+CREATE TABLE journal_entries (
+    entry_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    author_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    title VARCHAR(255), -- Title is optional
+    content TEXT NOT NULL,
+    mood VARCHAR(50), -- e.g., 'great', 'good', 'okay', 'bad', 'awful'
+    ai_sentiment VARCHAR(50), -- To store AI analysis, e.g., 'positive', 'negative', 'neutral'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE journal_entries IS 'Stores private journal entries for each user.';
+COMMENT ON COLUMN journal_entries.author_id IS 'Foreign key linking the entry to the user who wrote it.';
+COMMENT ON COLUMN journal_entries.mood IS 'User-selected mood for the entry.';
+COMMENT ON COLUMN journal_entries.ai_sentiment IS 'Sentiment analysis result from the AI model.';
+COMMENT ON COLUMN journal_entries.created_at IS 'The date and time the entry was originally created.';
+
+
+-- -----------------------------------------------------
+-- Indexes for Performance
+-- An index on author_id will make fetching a user's journal history very fast.
+-- -----------------------------------------------------
+CREATE INDEX idx_journal_entries_author_id ON journal_entries(author_id);
 

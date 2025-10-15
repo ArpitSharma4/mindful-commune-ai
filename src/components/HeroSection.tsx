@@ -23,7 +23,7 @@ const HeroSection = () => {
       title: "Journaling Feature ",
       description: "Opening your personal journaling space...",
     });
-    // TODO: Navigate to journaling page when implemented
+    navigate('/journaling');
   };
 
   const handleAIChatbot = () => {
