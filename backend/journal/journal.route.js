@@ -6,6 +6,7 @@ const {
   getJournalEntryById,
   updateJournalEntry,
   deleteJournalEntry,
+  getAIFeedback,
 } = require('./journal.controller');
 
 const router = Router();
@@ -27,5 +28,10 @@ router.put('/:entryId', authMiddleware, updateJournalEntry);
 
 // DELETE /api/journal/:entryId -> Delete a journal entry
 router.delete('/:entryId', authMiddleware, deleteJournalEntry);
+
+// --- AI Interaction Route (Protected) ---
+// 2. Add the new route to trigger AI analysis for an entry
+// POST /api/journal/:entryId/analyze
+router.post('/:entryId/analyze', authMiddleware, getAIFeedback);
 
 module.exports = router;
