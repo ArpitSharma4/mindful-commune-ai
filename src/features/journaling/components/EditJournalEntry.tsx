@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,46 +11,37 @@ import {
   Frown, 
   Meh, 
   Heart, 
-  Zap,
-  Sparkles,
-  Calendar,
   Save,
   X
 } from 'lucide-react';
-import { CreateJournalEntryRequest, MoodType, JournalPrompt } from '../types';
-import { journalService, journalPrompts, moodOptions } from '../services';
+import { CreateJournalEntryRequest, MoodType, JournalEntry } from '../types';
+import { journalService, moodOptions } from '../services';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-interface CreateJournalEntryProps {
-  onEntryCreated?: (entry: any) => void;
+interface EditJournalEntryProps {
+  entry: JournalEntry;
+  onEntryUpdated?: (entry: JournalEntry) => void;
   onCancel?: () => void;
   className?: string;
 }
 
-export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
-  onEntryCreated,
+export const EditJournalEntry: React.FC<EditJournalEntryProps> = ({
+  entry,
+  onEntryUpdated,
   onCancel,
   className
 }) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState<CreateJournalEntryRequest>({
-    title: '',
-    content: '',
-    mood: 'okay'
+    title: entry.title,
+    content: entry.content,
+    mood: entry.mood
   });
-  const [selectedPrompt, setSelectedPrompt] = useState<JournalPrompt | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPrompts, setShowPrompts] = useState(false);
 
   const handleInputChange = (field: keyof CreateJournalEntryRequest, value: string | MoodType) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handlePromptSelect = (prompt: JournalPrompt) => {
-    setSelectedPrompt(prompt);
-    setFormData(prev => ({ ...prev, content: prompt.text }));
-    setShowPrompts(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,52 +59,18 @@ export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Debug: Check authentication status
-      const token = localStorage.getItem('authToken');
-      const storedUserData = localStorage.getItem('userData');
-      
-      console.log('🔍 Debug - Authentication Check:');
-      console.log('- Token exists:', !!token);
-      console.log('- User data exists:', !!storedUserData);
-      
-      if (!token) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to create journal entries.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (!storedUserData) {
-        toast({
-          title: "User Data Missing",
-          description: "Please log in again to refresh your session.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      const userData = JSON.parse(storedUserData);
-      console.log('- User ID:', userData.userId);
-      console.log('- Form data:', formData);
-      
-      const newEntry = await journalService.createJournalEntry(formData, userData.userId);
+      const updatedEntry = await journalService.updateJournalEntry(entry.id, formData);
       
       toast({
-        title: "Entry Created",
-        description: "Your journal entry has been saved successfully.",
+        title: "Entry Updated",
+        description: "Your journal entry has been updated successfully.",
       });
 
-      // Reset form
-      setFormData({ title: '', content: '', mood: 'okay' });
-      setSelectedPrompt(null);
-      
-      onEntryCreated?.(newEntry);
+      onEntryUpdated?.(updatedEntry);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create journal entry. Please try again.",
+        description: "Failed to update journal entry. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -138,30 +95,13 @@ export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
     }
   };
 
-  const getPromptCategoryColor = (category: string): string => {
-    switch (category) {
-      case 'gratitude':
-        return 'bg-pink-100 text-pink-800 border-pink-200';
-      case 'reflection':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'growth':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'challenge':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'celebration':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   return (
     <Card className={cn("w-full max-w-2xl mx-auto", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <PenTool className="h-5 w-5 text-primary" />
-            New Journal Entry
+            Edit Journal Entry
           </CardTitle>
           {onCancel && (
             <Button
@@ -213,48 +153,6 @@ export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
             </div>
           </div>
 
-          {/* Prompts Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Writing Prompts</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPrompts(!showPrompts)}
-                className="text-xs"
-              >
-                <Sparkles className="h-3 w-3 mr-1" />
-                {showPrompts ? 'Hide' : 'Show'} Prompts
-              </Button>
-            </div>
-            
-            {showPrompts && (
-              <div className="grid gap-2 max-h-40 overflow-y-auto">
-                {journalPrompts.map((prompt) => (
-                  <Button
-                    key={prompt.id}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handlePromptSelect(prompt)}
-                    className="justify-start text-left h-auto p-3"
-                  >
-                    <div className="flex items-start gap-2 w-full">
-                      <Badge 
-                        variant="outline" 
-                        className={cn("text-xs shrink-0", getPromptCategoryColor(prompt.category))}
-                      >
-                        {prompt.category}
-                      </Badge>
-                      <span className="text-sm">{prompt.text}</span>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Content Textarea */}
           <div className="space-y-2">
             <Label htmlFor="content">Your Thoughts</Label>
@@ -270,25 +168,6 @@ export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
             </div>
           </div>
 
-          {/* Selected Prompt Display */}
-          {selectedPrompt && (
-            <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-              <div className="flex items-center gap-2 text-sm text-primary">
-                <Zap className="h-4 w-4" />
-                <span className="font-medium">Using prompt:</span>
-                <Badge 
-                  variant="outline" 
-                  className={cn("text-xs", getPromptCategoryColor(selectedPrompt.category))}
-                >
-                  {selectedPrompt.category}
-                </Badge>
-              </div>
-              <p className="text-sm mt-1 text-muted-foreground">
-                {selectedPrompt.text}
-              </p>
-            </div>
-          )}
-
           {/* Submit Button */}
           <div className="flex gap-3 pt-4">
             <Button
@@ -300,12 +179,12 @@ export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2" />
-                  Saving...
+                  Updating...
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Save Entry
+                  Update Entry
                 </>
               )}
             </Button>
@@ -327,4 +206,5 @@ export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
   );
 };
 
-export default CreateJournalEntry;
+export default EditJournalEntry;
+

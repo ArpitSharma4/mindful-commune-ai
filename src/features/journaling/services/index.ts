@@ -1,7 +1,6 @@
-// Mock data and services for journaling feature
-// In a real implementation, these would make API calls to the backend
-
+// Journal services for API communication
 import { JournalEntry, MoodType, AIFeedback, JournalPrompt, CreateJournalEntryRequest, JournalStats } from '../types';
+import { apiRequest } from '@/lib/apiClient';
 
 // Mock journal entries data
 let mockJournalEntries: JournalEntry[] = [
@@ -103,59 +102,48 @@ export const moodOptions = [
   { value: 'awful' as MoodType, label: 'Awful', emoji: '😢', color: 'text-red-600' }
 ];
 
-// Mock API functions
+// Helper function to transform backend response to frontend format
+const transformJournalEntry = (backendEntry: any): JournalEntry => ({
+  id: backendEntry.entry_id,
+  title: backendEntry.title,
+  content: backendEntry.content,
+  mood: backendEntry.mood,
+  createdAt: new Date(backendEntry.created_at),
+  updatedAt: new Date(backendEntry.updated_at || backendEntry.created_at),
+  userId: backendEntry.author_id
+});
+
+// API functions
 export const journalService = {
   // Get all journal entries for a user
   getJournalEntries: async (userId: string): Promise<JournalEntry[]> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return mockJournalEntries.filter(entry => entry.userId === userId);
+    const response = await apiRequest<any[]>('/api/journal');
+    return response.map(transformJournalEntry);
   },
 
   // Create a new journal entry
   createJournalEntry: async (entry: CreateJournalEntryRequest, userId: string): Promise<JournalEntry> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const newEntry: JournalEntry = {
-      id: Date.now().toString(),
-      ...entry,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      userId
-    };
-    
-    mockJournalEntries.unshift(newEntry);
-    return newEntry;
+    const response = await apiRequest<any>('/api/journal', {
+      method: 'POST',
+      body: JSON.stringify(entry)
+    });
+    return transformJournalEntry(response);
   },
 
   // Update an existing journal entry
   updateJournalEntry: async (id: string, updates: Partial<CreateJournalEntryRequest>): Promise<JournalEntry> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const entryIndex = mockJournalEntries.findIndex(entry => entry.id === id);
-    if (entryIndex === -1) {
-      throw new Error('Journal entry not found');
-    }
-    
-    mockJournalEntries[entryIndex] = {
-      ...mockJournalEntries[entryIndex],
-      ...updates,
-      updatedAt: new Date()
-    };
-    
-    return mockJournalEntries[entryIndex];
+    const response = await apiRequest<any>(`/api/journal/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    });
+    return transformJournalEntry(response);
   },
 
   // Delete a journal entry
   deleteJournalEntry: async (id: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const entryIndex = mockJournalEntries.findIndex(entry => entry.id === id);
-    if (entryIndex === -1) {
-      throw new Error('Journal entry not found');
-    }
-    
-    mockJournalEntries.splice(entryIndex, 1);
+    await apiRequest(`/api/journal/${id}`, {
+      method: 'DELETE'
+    });
   },
 
   // Get AI feedback for an entry

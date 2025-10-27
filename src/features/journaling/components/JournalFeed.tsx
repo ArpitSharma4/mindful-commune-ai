@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { JournalEntry, MoodType } from '../types';
 import { journalService } from '../services';
 import { AIFeedback } from './AIFeedback';
+import { EditJournalEntry } from './EditJournalEntry';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -45,6 +46,7 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [moodFilter, setMoodFilter] = useState<MoodType | 'all'>('all');
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+  const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
 
   useEffect(() => {
     loadEntries();
@@ -53,16 +55,39 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
   const loadEntries = async () => {
     try {
       setLoading(true);
-      // In a real app, you'd get the current user ID from auth context
-      const userId = 'user1';
-      const userEntries = await journalService.getJournalEntries(userId);
+      // Get the current user ID from localStorage
+      const storedUserData = localStorage.getItem('userData');
+      if (!storedUserData) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to view your journal entries.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const userData = JSON.parse(storedUserData);
+      console.log('Loading journal entries for user:', userData.userId);
+      const userEntries = await journalService.getJournalEntries(userData.userId);
+      console.log('Loaded journal entries:', userEntries);
       setEntries(userEntries);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load journal entries.",
-        variant: "destructive"
-      });
+      console.error('Error loading journal entries:', error);
+      
+      // Check if it's an authentication error
+      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        toast({
+          title: "Session Expired",
+          description: "Please log in again to view your journal entries.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to load journal entries: ${error.message}`,
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -83,6 +108,21 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
         variant: "destructive"
       });
     }
+  };
+
+  const handleEditEntry = (entry: JournalEntry) => {
+    setEditingEntry(entry);
+  };
+
+  const handleEntryUpdated = (updatedEntry: JournalEntry) => {
+    setEntries(prev => prev.map(entry => 
+      entry.id === updatedEntry.id ? updatedEntry : entry
+    ));
+    setEditingEntry(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEntry(null);
   };
 
   const toggleExpanded = (entryId: string) => {
@@ -290,7 +330,7 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditEntry(entry)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
@@ -351,6 +391,19 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingEntry && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <EditJournalEntry
+              entry={editingEntry}
+              onEntryUpdated={handleEntryUpdated}
+              onCancel={handleCancelEdit}
+            />
+          </div>
         </div>
       )}
     </div>

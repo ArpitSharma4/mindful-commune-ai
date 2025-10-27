@@ -8,6 +8,9 @@ const createJournalEntry = async (req, res) => {
     const { title, content, mood } = req.body;
     const userId = req.user.userId;
 
+    console.log('Creating journal entry for user:', userId);
+    console.log('Entry data:', { title, content, mood });
+
     if (!content) {
       return res.status(400).json({ error: 'Content is required for a journal entry.' });
     }
@@ -15,9 +18,11 @@ const createJournalEntry = async (req, res) => {
     const query = `
       INSERT INTO journal_entries (author_id, title, content, mood)
       VALUES ($1, $2, $3, $4)
-      RETURNING *;
+      RETURNING entry_id, title, content, mood, created_at, 
+                COALESCE(updated_at, created_at) as updated_at;
     `;
     const result = await pool.query(query, [userId, title, content, mood]);
+    console.log('Journal entry created successfully:', result.rows[0]);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -32,13 +37,17 @@ const createJournalEntry = async (req, res) => {
 const getAllJournalEntries = async (req, res) => {
   try {
     const userId = req.user.userId;
+    console.log('Fetching journal entries for user:', userId);
+    
     const query = `
-      SELECT entry_id, title, mood, created_at 
+      SELECT entry_id, title, content, mood, created_at, 
+             COALESCE(updated_at, created_at) as updated_at
       FROM journal_entries 
       WHERE author_id = $1 
       ORDER BY created_at DESC;
     `;
     const result = await pool.query(query, [userId]);
+    console.log('Found journal entries:', result.rows.length);
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error fetching journal entries:', error);
@@ -87,7 +96,8 @@ const updateJournalEntry = async (req, res) => {
       SET 
         title = COALESCE($1, title), 
         content = COALESCE($2, content),
-        mood = COALESCE($3, mood)
+        mood = COALESCE($3, mood),
+        updated_at = NOW()
       WHERE entry_id = $4 AND author_id = $5
       RETURNING *;
     `;

@@ -297,7 +297,8 @@ CREATE TABLE journal_entries (
     content TEXT NOT NULL,
     mood VARCHAR(50), -- e.g., 'great', 'good', 'okay', 'bad', 'awful'
     ai_sentiment VARCHAR(50), -- To store AI analysis, e.g., 'positive', 'negative', 'neutral'
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 COMMENT ON TABLE journal_entries IS 'Stores private journal entries for each user.';
