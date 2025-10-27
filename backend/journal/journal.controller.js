@@ -37,20 +37,22 @@ const createJournalEntry = async (req, res) => {
 const getAllJournalEntries = async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('Fetching journal entries for user:', userId);
-    
+    console.log(`Fetching journal entries for user: ${userId}`); // Your debug log
+
     const query = `
-      SELECT entry_id, title, content, mood, created_at, 
-             COALESCE(updated_at, created_at) as updated_at
+      SELECT 
+        entry_id, 
+        title, 
+        mood, 
+        created_at 
       FROM journal_entries 
       WHERE author_id = $1 
       ORDER BY created_at DESC;
     `;
     const result = await pool.query(query, [userId]);
-    console.log('Found journal entries:', result.rows.length);
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Error fetching journal entries:', error);
+    console.error('Error fetching journal entries:', error); // Log the actual error
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
