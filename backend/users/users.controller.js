@@ -136,7 +136,7 @@ const loginUser = async (req, res) => {
     const token = jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: '24h' } // Token will be valid for 24 hours
+      { expiresIn: '1h' } // Token will be valid for 24 hours
     );
 
     // 7. Send the token back to the client.

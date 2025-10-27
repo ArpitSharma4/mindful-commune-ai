@@ -7,6 +7,8 @@ const {
   updateJournalEntry,
   deleteJournalEntry,
   getAIFeedback,
+  getJournalStats,  
+  getJournalPrompts,
 } = require('./journal.controller');
 
 const router = Router();
@@ -20,6 +22,12 @@ router.post('/', authMiddleware, createJournalEntry);
 // GET /api/journal -> Get a list of all of the user's journal entries
 router.get('/', authMiddleware, getAllJournalEntries);
 
+//GET /api/journal/stats -> Get journal statistics for the user
+router.get('/stats', authMiddleware, getJournalStats);
+
+// GET /api/journal/prompts -> Get journaling prompts
+router.get('/prompts', authMiddleware, getJournalPrompts);
+
 // GET /api/journal/:entryId -> Get a single journal entry by its ID
 router.get('/:entryId', authMiddleware, getJournalEntryById);
 
@@ -30,7 +38,6 @@ router.put('/:entryId', authMiddleware, updateJournalEntry);
 router.delete('/:entryId', authMiddleware, deleteJournalEntry);
 
 // --- AI Interaction Route (Protected) ---
-// 2. Add the new route to trigger AI analysis for an entry
 // POST /api/journal/:entryId/analyze
 router.post('/:entryId/analyze', authMiddleware, getAIFeedback);
 

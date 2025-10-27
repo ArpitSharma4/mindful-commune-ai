@@ -299,6 +299,138 @@ const getAIFeedback = async (req, res) => {
   }
 };
 
+/**
+ * Calculates and returns journaling statistics for the logged-in user. (Protected)
+ */
+const getJournalStats = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // --- Query 1: Total Entries ---
+    const totalQuery = 'SELECT COUNT(*) AS total_entries FROM journal_entries WHERE author_id = $1';
+    const totalResult = await pool.query(totalQuery, [userId]);
+    const totalEntries = parseInt(totalResult.rows[0].total_entries, 10);
+
+    // --- Query 2: Average Mood ---
+    // Map moods to numbers (e.g., great=5, good=4, okay=3, bad=2, awful=1)
+    // Handle cases where mood is null or not in the expected set (defaults to 3/okay)
+    const avgMoodQuery = `
+      SELECT AVG(
+        CASE mood
+          WHEN 'great' THEN 5
+          WHEN 'good' THEN 4
+          WHEN 'okay' THEN 3
+          WHEN 'bad' THEN 2
+          WHEN 'awful' THEN 1
+          ELSE 3 
+        END
+      ) AS average_mood
+      FROM journal_entries
+      WHERE author_id = $1 AND mood IS NOT NULL;
+    `;
+    const avgMoodResult = await pool.query(avgMoodQuery, [userId]);
+    // Use parseFloat and handle potential null result if user has no entries with moods
+    const averageMoodRaw = avgMoodResult.rows[0]?.average_mood;
+    const averageMood = averageMoodRaw ? parseFloat(parseFloat(averageMoodRaw).toFixed(1)) : null; // Round to 1 decimal place
+
+    // --- Query 3: Last Entry Date ---
+    const lastEntryQuery = `
+      SELECT created_at AS last_entry_date 
+      FROM journal_entries 
+      WHERE author_id = $1 
+      ORDER BY created_at DESC 
+      LIMIT 1;
+    `;
+    const lastEntryResult = await pool.query(lastEntryQuery, [userId]);
+    const lastEntryDate = lastEntryResult.rows.length > 0 ? lastEntryResult.rows[0].last_entry_date : null;
+
+    // --- Query 4 & Calculation: Current Streak ---
+    const streakQuery = `
+      SELECT DISTINCT DATE(created_at AT TIME ZONE 'UTC') AS entry_date 
+      FROM journal_entries 
+      WHERE author_id = $1 
+      ORDER BY entry_date DESC;
+    `;
+    const streakResult = await pool.query(streakQuery, [userId]);
+    const entryDates = streakResult.rows.map(row => new Date(row.entry_date));
+
+    let currentStreak = 0;
+    if (entryDates.length > 0) {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0); // Normalize today's date to UTC midnight
+      const yesterday = new Date(today);
+      yesterday.setUTCDate(today.getUTCDate() - 1); // Get yesterday's date
+
+      // Check if the most recent entry was today or yesterday
+      if (entryDates[0].getTime() === today.getTime() || entryDates[0].getTime() === yesterday.getTime()) {
+        currentStreak = 1;
+        // Loop backwards from the second most recent entry
+        for (let i = 1; i < entryDates.length; i++) {
+          const expectedPreviousDate = new Date(entryDates[i-1]);
+          expectedPreviousDate.setUTCDate(expectedPreviousDate.getUTCDate() - 1); // Calculate the day before the previous entry
+
+          if (entryDates[i].getTime() === expectedPreviousDate.getTime()) {
+            currentStreak++; // Dates are consecutive, increment streak
+          } else {
+            break; // Gap detected, streak ends
+          }
+        }
+      }
+    }
+
+    // --- Combine Results ---
+    res.status(200).json({
+      totalEntries: totalEntries,
+      averageMood: averageMood, // Numerical average (e.g., 4.2) or null
+      currentStreak: currentStreak,
+      lastEntryDate: lastEntryDate
+    });
+
+  } catch (error) {
+    console.error('Error fetching journal stats:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// List of predefined journaling prompts
+const JOURNAL_PROMPTS = [
+  "What is one thing you are grateful for today?",
+  "Describe a small victory or achievement you had recently.",
+  "What is something that's been on your mind lately?",
+  "Write about a challenge you faced and how you navigated it.",
+  "What activity brought you joy recently?",
+  "If you could give your past self some advice, what would it be?",
+  "What are you looking forward to in the coming week?",
+  "Describe a moment when you felt proud of yourself.",
+  "What is one thing you learned today?",
+  "How did you practice self-care today?",
+  "Write about something that made you smile.",
+  "What is a goal you are currently working towards?",
+  "Describe a place where you feel calm and relaxed.",
+  "What is one worry you can let go of right now?",
+  "Reflect on a recent conversation that impacted you.",
+];
+
+/**
+ * Returns a small, random selection of journaling prompts. (Protected)
+ */
+const getJournalPrompts = async (req, res) => {
+  try {
+    // We don't need userId for the logic, but accessing req.user confirms authentication middleware ran.
+    // console.log(`Fetching prompts for user: ${req.user.userId}`); 
+
+    const numberOfPrompts = 3; // How many prompts to return
+    const shuffledPrompts = [...JOURNAL_PROMPTS].sort(() => 0.5 - Math.random()); // Shuffle the array
+    const selectedPrompts = shuffledPrompts.slice(0, numberOfPrompts); // Take the first N prompts
+
+    res.status(200).json(selectedPrompts);
+
+  } catch (error) {
+    console.error('Error fetching journal prompts:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   createJournalEntry,
   getAllJournalEntries,
@@ -306,5 +438,7 @@ module.exports = {
   updateJournalEntry,
   deleteJournalEntry,
   getAIFeedback,
+  getJournalStats,
+  getJournalPrompts,
 };
 
