@@ -43,8 +43,10 @@ const getAllJournalEntries = async (req, res) => {
       SELECT 
         entry_id, 
         title, 
+        content,
         mood, 
-        created_at 
+        created_at,
+        COALESCE(updated_at, created_at) as updated_at
       FROM journal_entries 
       WHERE author_id = $1 
       ORDER BY created_at DESC;

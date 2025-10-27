@@ -118,6 +118,10 @@ export const journalService = {
   // Get all journal entries for a user
   getJournalEntries: async (userId: string): Promise<JournalEntry[]> => {
     const response = await apiRequest<any[]>('/api/journal');
+    if (!response || !Array.isArray(response)) {
+      console.error('Invalid response from API:', response);
+      return [];
+    }
     return response.map(transformJournalEntry);
   },
 

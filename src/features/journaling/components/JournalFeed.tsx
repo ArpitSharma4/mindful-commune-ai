@@ -70,7 +70,7 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
       console.log('Loading journal entries for user:', userData.userId);
       const userEntries = await journalService.getJournalEntries(userData.userId);
       console.log('Loaded journal entries:', userEntries);
-      setEntries(userEntries);
+      setEntries(userEntries || []);
     } catch (error) {
       console.error('Error loading journal entries:', error);
       
@@ -171,12 +171,24 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
     }
   };
 
-  const filteredEntries = entries.filter(entry => {
-    const matchesSearch = entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.content.toLowerCase().includes(searchTerm.toLowerCase());
+  console.log('🔍 Debug entries:', entries);
+  console.log('🔍 Debug entries length:', entries?.length);
+  
+  const filteredEntries = (entries || []).filter(entry => {
+    console.log('🔍 Debug filtering entry:', entry);
+    if (!entry || entry.title === undefined || entry.content === undefined) {
+      console.log('🔍 Entry filtered out:', { hasTitle: entry?.title !== undefined, hasContent: entry?.content !== undefined });
+      return false;
+    }
+    const title = entry.title || '';
+    const content = entry.content || '';
+    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         content.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMood = moodFilter === 'all' || entry.mood === moodFilter;
     return matchesSearch && matchesMood;
   });
+  
+  console.log('🔍 Debug filteredEntries length:', filteredEntries.length);
 
   const formatDate = (date: Date) => {
     const now = new Date();

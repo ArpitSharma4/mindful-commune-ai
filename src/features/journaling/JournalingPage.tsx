@@ -22,22 +22,35 @@ interface JournalingPageProps {
 }
 
 export const JournalingPage: React.FC<JournalingPageProps> = ({ className }) => {
+  console.log('JournalingPage rendering...');
   const [activeTab, setActiveTab] = useState('feed');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [stats, setStats] = useState<JournalStats | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  console.log('JournalingPage state:', { activeTab, showCreateForm, stats, error });
 
   const handleEntryCreated = (newEntry: JournalEntry) => {
     setShowCreateForm(false);
     setActiveTab('feed');
     // Refresh stats if needed
     loadStats();
+    // Force feed to reload by changing the key
+    setRefreshKey(prev => prev + 1);
   };
 
   const loadStats = async () => {
     try {
-      // In a real app, you'd get stats from the API
-      const userId = 'user1';
-      const entries = await journalService.getJournalEntries(userId);
+      // Get the current user ID from localStorage
+      const storedUserData = localStorage.getItem('userData');
+      if (!storedUserData) {
+        console.log('No user data found, skipping stats load');
+        return;
+      }
+      
+      const userData = JSON.parse(storedUserData);
+      const entries = await journalService.getJournalEntries(userData.userId);
       
       const totalEntries = entries.length;
       const moodValues = { great: 5, good: 4, okay: 3, bad: 2, awful: 1 };
@@ -63,11 +76,21 @@ export const JournalingPage: React.FC<JournalingPageProps> = ({ className }) => 
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
+      // Set error state but don't crash the page
+      setError('Failed to load journal stats');
     }
   };
 
   React.useEffect(() => {
     loadStats();
+  }, []);
+
+  // Add error boundary to catch any rendering errors
+  React.useEffect(() => {
+    console.log('JournalingPage mounted');
+    return () => {
+      console.log('JournalingPage unmounted');
+    };
   }, []);
 
   const getMoodEmoji = (mood: number) => {
@@ -187,7 +210,10 @@ export const JournalingPage: React.FC<JournalingPageProps> = ({ className }) => 
           </TabsList>
 
           <TabsContent value="feed" className="space-y-6">
-            <JournalFeed onCreateEntry={() => setActiveTab('create')} />
+            <JournalFeed 
+              onCreateEntry={() => setActiveTab('create')}
+              key={refreshKey} // Force re-render when entries are created
+            />
           </TabsContent>
 
           <TabsContent value="create" className="space-y-6">
