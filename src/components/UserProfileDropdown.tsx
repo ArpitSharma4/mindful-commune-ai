@@ -15,8 +15,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import LoginModal from "./LoginModal";
-import AvatarEditModal from "./AvatarEditModal";
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 interface UserProfileDropdownProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,13 +33,16 @@ interface UserProfileDropdownProps {
 const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
   const { toast } = useToast();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [showAvatarDialog, setShowAvatarDialog] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState<{
     username: string;
     userId: number;
     avatar_url?: string;
   } | null>(null);
+  const [showAvatarDialog, setShowAvatarDialog] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Check authentication status on component mount and listen for changes
   useEffect(() => {
@@ -56,7 +67,7 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
         setIsLoggedIn(false);
       }
     };
-
+    
     // Initial check
     checkAuthStatus();
 
@@ -126,16 +137,80 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
     });
     onClose();
   };
+const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+};
 
-  const handleAvatarUpdate = (newAvatarUrl: string) => {
-    if (userData) {
-      setUserData(prev => prev ? { ...prev, avatar_url: newAvatarUrl } : null);
-      // Update localStorage
-      const updatedUserData = { ...userData, avatar_url: newAvatarUrl };
-      localStorage.setItem('userData', JSON.stringify(updatedUserData));
+const handleAvatarUpload = async () => {
+  if (!avatarFile) {
+    toast({
+      description: "Please select an image file to upload.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  setIsUploadingAvatar(true);
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to upload an avatar.",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+
+    const response = await fetch('/api/users/avatar', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      toast({
+        title: "Avatar Updated",
+        description: "Your profile picture has been updated successfully.",
+      });
+      setShowAvatarDialog(false);
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      // Refresh user data
+      window.location.reload();
+    } else {
+      const data = await response.json();
+      toast({
+        title: "Upload Failed",
+        description: data.error || "Failed to upload avatar.",
+        variant: "destructive",
+      });
+    }
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    toast({
+      title: "Network Error",
+      description: "Unable to connect to the server.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsUploadingAvatar(false);
+  }
+};
   // Generate initials from username
   const getInitials = (username: string) => {
     return username
@@ -167,18 +242,12 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
         <div className="p-4 space-y-3">
           {/* User Info */}
           <div className="flex items-center gap-3 pb-3 border-b">
-            <button 
-              onClick={() => setShowAvatarDialog(true)}
-              className="hover:opacity-80 transition-opacity"
-              title="Edit Avatar"
-            >
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={userData.avatar_url} />
-                <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                  {getInitials(userData.username)}
-                </AvatarFallback>
-              </Avatar>
-            </button>
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={userData.avatar_url} />
+              <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                {getInitials(userData.username)}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1">
               <div className="font-medium">
                 {userData.username}
@@ -194,55 +263,66 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
 
           {/* Menu Items */}
           <div className="space-y-1">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("My Posts")}
-            >
-              <FileText className="h-4 w-4" />
-              <span>My Posts</span>
-            </Button>
+          <Button
+  variant="ghost"
+  className="w-full justify-start gap-3 h-auto p-3"
+  onClick={() => {
+    // TODO: Open avatar upload dialog here
+    toast({
+      title: "Edit Avatar",
+      description: "Avatar upload dialog will open here",
+    });
+    onClose();
+  }}
+>
+  <Edit className="h-4 w-4" />
+  <span>Edit Avatar</span>
+</Button>
 
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Achievements")}
+              onClick={() => handleMenuItem("Streaks")}
             >
               <Trophy className="h-4 w-4" />
-              <span>Achievements</span>
+              <div className="flex-1 text-left">
+                <span>Streaks</span>
+                <div className="text-xs text-muted-foreground">5 unlocked</div>
+              </div>
             </Button>
 
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Analytics")}
+              onClick={() => handleMenuItem("Earn")}
             >
               <TrendingUp className="h-4 w-4" />
-              <span>Analytics</span>
+              <div className="flex-1 text-left">
+                <span>Earn</span>
+                <div className="text-xs text-muted-foreground">Earn rewards on EchoWell</div>
+              </div>
             </Button>
 
-            <Link to="/settings">
+            <Link to="/settings" onClick={onClose}>
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 h-auto p-3"
-                onClick={onClose}
               >
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>
               </Button>
             </Link>
-          </div>
 
-          {/* Logout */}
-          <div className="pt-3 border-t">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 h-auto p-3 text-destructive hover:text-destructive"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Log Out</span>
-            </Button>
+            <div className="border-t pt-3">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 h-auto p-3 text-destructive hover:text-destructive"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Log Out</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -251,15 +331,6 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
-      />
-
-      {/* Avatar Edit Modal */}
-      <AvatarEditModal
-        isOpen={showAvatarDialog}
-        onClose={() => setShowAvatarDialog(false)}
-        currentAvatar={userData?.avatar_url || ""}
-        username={userData?.username || ""}
-        onAvatarUpdate={handleAvatarUpdate}
       />
     </>
   );

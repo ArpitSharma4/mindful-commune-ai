@@ -152,37 +152,44 @@ export const journalService = {
 
   // Get AI feedback for an entry
   getAIFeedback: async (entryId: string): Promise<AIFeedback | null> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return mockAIFeedback.find(feedback => feedback.entryId === entryId) || null;
+    try {
+      const response = await apiRequest<any>(`/api/journal/${entryId}/analyze`, {
+        method: 'POST'
+      });
+      return {
+        id: `fb-${entryId}`,
+        entryId,
+        feedback: response.feedback,
+        createdAt: new Date()
+      };
+    } catch (error) {
+      console.error('Error getting AI feedback:', error);
+      return null;
+    }
   },
 
-  // Generate AI feedback for an entry
+  // Generate AI feedback for an entry (calls the same endpoint)
   generateAIFeedback: async (entryId: string, content: string): Promise<AIFeedback> => {
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate AI processing time
-    
-    // Mock AI feedback generation
-    const feedbackTexts = [
-      "It sounds like you're processing some important thoughts and feelings. Taking time to reflect like this is a valuable practice for your wellbeing.",
-      "Thank you for sharing your thoughts with such honesty. It takes courage to be vulnerable with yourself, and that's something to be proud of.",
-      "Your reflection shows a lot of self-awareness. Remember that it's okay to have difficult days - they're part of being human.",
-      "I can hear the care you're taking with your thoughts and feelings. This kind of mindful reflection is a gift you're giving yourself.",
-      "It's clear that you're thinking deeply about your experiences. This kind of introspection is an important part of personal growth."
-    ];
-    
-    const randomFeedback = feedbackTexts[Math.floor(Math.random() * feedbackTexts.length)];
-    
-    const newFeedback: AIFeedback = {
-      id: Date.now().toString(),
-      entryId,
-      feedback: randomFeedback,
-      createdAt: new Date()
-    };
-    
-    // Remove existing feedback for this entry
-    mockAIFeedback = mockAIFeedback.filter(fb => fb.entryId !== entryId);
-    mockAIFeedback.push(newFeedback);
-    
-    return newFeedback;
+    try {
+      const response = await apiRequest<any>(`/api/journal/${entryId}/analyze`, {
+        method: 'POST'
+      });
+      return {
+        id: `fb-${entryId}`,
+        entryId,
+        feedback: response.feedback,
+        createdAt: new Date()
+      };
+    } catch (error) {
+      console.error('Error generating AI feedback:', error);
+      // Return a default feedback if API fails
+      return {
+        id: `fb-${entryId}`,
+        entryId,
+        feedback: "Thanks for sharing your thoughts. Taking time to reflect is valuable for your wellbeing.",
+        createdAt: new Date()
+      };
+    }
   },
 
   // Get journal statistics

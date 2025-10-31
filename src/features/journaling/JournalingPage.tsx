@@ -16,6 +16,7 @@ import { JournalFeed, CreateJournalEntry } from './components';
 import { journalService } from './services';
 import { JournalEntry, JournalStats } from './types';
 import { cn } from '@/lib/utils';
+import LeftSidebar from '@/components/LeftSidebar';
 
 interface JournalingPageProps {
   className?: string;
@@ -28,6 +29,7 @@ export const JournalingPage: React.FC<JournalingPageProps> = ({ className }) => 
   const [stats, setStats] = useState<JournalStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   console.log('JournalingPage state:', { activeTab, showCreateForm, stats, error });
 
@@ -110,8 +112,15 @@ export const JournalingPage: React.FC<JournalingPageProps> = ({ className }) => 
   };
 
   return (
-    <div className={cn("min-h-screen bg-background", className)}>
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen">
+      <main className="w-full px-4 py-12">
+        <div className={`transition-all duration-500 ease-in-out ${isSidebarOpen ? "grid grid-cols-1 md:grid-cols-[14rem_1fr] gap-6" : "grid grid-cols-1 gap-6"}`}>
+          {isSidebarOpen && (
+            <div className="sticky top-3 self-start">
+              <LeftSidebar onClose={() => setIsSidebarOpen(false)} />
+            </div>
+          )}
+        <div className="w-full max-w-screen-xl mx-auto transition-all duration-500 ease-in-out">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-3 mb-2">
@@ -242,7 +251,9 @@ export const JournalingPage: React.FC<JournalingPageProps> = ({ className }) => 
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+        </div>
+        </div>
+      </main>
     </div>
   );
 };

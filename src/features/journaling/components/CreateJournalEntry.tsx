@@ -56,10 +56,10 @@ export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title.trim() || !formData.content.trim()) {
+    if (!formData.content.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please fill in both title and content fields.",
+        description: "Please fill in the content field.",
         variant: "destructive"
       });
       return;
@@ -293,7 +293,7 @@ export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
           <div className="flex gap-3 pt-4">
             <Button
               type="submit"
-              disabled={isSubmitting || !formData.title.trim() || !formData.content.trim()}
+              disabled={isSubmitting || !formData.content.trim()}
               className="flex-1"
               variant="therapeutic"
             >
