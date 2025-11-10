@@ -1,0 +1,23 @@
+{
+  "settings": {
+    "title": "Configuración",
+    "backButton": "Volver",
+    "nav": {
+      "account": "Cuenta",
+      "notifications": "Notificaciones",
+      "appearance": "Apariencia",
+      "language": "Idioma y Región",
+      "data": "Datos y Privacidad"
+    },
+    "dataPage": {
+      "title": "Datos y Privacidad",
+      "subtitle": "Gestiona tus preferencias de datos y privacidad",
+      "exportLabel": "Exportar Entradas del Diario",
+      "deleteLabel": "Borrar Mi Cuenta"
+    },
+    "languagePage": {
+      "title": "Localización",
+      "subtitle": "Idioma de la interfaz"
+    }
+  }
+}

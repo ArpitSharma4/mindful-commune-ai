@@ -1,0 +1,23 @@
+{
+  "settings": {
+    "title": "Settings",
+    "backButton": "Back",
+    "nav": {
+      "account": "Account",
+      "notifications": "Notifications",
+      "appearance": "Appearance",
+      "language": "Language & Region",
+      "data": "Data & Privacy"
+    },
+    "dataPage": {
+      "title": "Data & Privacy",
+      "subtitle": "Manage your data & privacy preferences",
+      "exportLabel": "Export Journal Entries",
+      "deleteLabel": "Delete My Account"
+    },
+    "languagePage": {
+      "title": "Localization",
+      "subtitle": "Interface language"
+    }
+  }
+}

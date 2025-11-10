@@ -1,5 +1,5 @@
 const pool = require('../db');
-
+const { Parser } = require('json2csv');
 /**
  * Creates a new, private journal entry for the logged-in user. (Protected)
  */
@@ -437,6 +437,102 @@ const getJournalPrompts = async (req, res) => {
   }
 };
 
+/**
+ * Exports all journal entries for the logged-in user as a JSON file. (Protected)
+ */
+const exportJournalEntries = async (req, res) => {
+  try {
+    // 1. Get the requested format from the URL query, defaulting to 'json'
+    const { format = 'json' } = req.query;
+    const userId = req.user.userId;
+    console.log(`Exporting all journal entries for user: ${userId} as [${format}]`);
+
+    // 2. Fetch all journal entries from the database (same as before)
+    const query = `
+      SELECT 
+        entry_id, 
+        title, 
+        content,
+        mood, 
+        ai_sentiment,
+        created_at,
+        COALESCE(updated_at, created_at) as updated_at
+      FROM journal_entries 
+      WHERE author_id = $1 
+      ORDER BY created_at ASC; 
+    `;
+    const result = await pool.query(query, [userId]);
+    const entries = result.rows;
+
+    // 3. Declare variables for our output
+    let outputData;
+    let contentType;
+    const
+      fileDate = new Date().toISOString().split('T')[0];
+    let fileName = `journal_export_${fileDate}`;
+
+    // 4. Use a switch statement to format the data
+    switch (format) {
+      case 'csv':
+        // --- CSV Format ---
+        // Define the columns for the CSV file
+        const fields = ['created_at', 'title', 'mood', 'ai_sentiment', 'content', 'entry_id', 'updated_at'];
+        const json2csvParser = new Parser({ fields });
+        outputData = json2csvParser.parse(entries);
+        
+        contentType = 'text/csv';
+        fileName += '.csv';
+        break;
+
+      case 'txt':
+        // --- TXT Format ---
+        // Loop through entries and build a human-readable string
+        let txtString = `My Journal Entries\r\nExported on: ${fileDate}\r\n\r\n`;
+        
+        for (const entry of entries) {
+          txtString += `----------------------------------------\r\n`;
+          txtString += `Date:    ${entry.created_at}\r\n`;
+          txtString += `Title:   ${entry.title || '(No Title)'}\r\n`;
+          txtString += `Mood:    ${entry.mood || 'N/A'}\r\n`;
+          txtString += `\r\n`; // Add a space before content
+          txtString += `${entry.content}\r\n\r\n`;
+        }
+        
+        outputData = txtString;
+        contentType = 'text/plain';
+        fileName += '.txt';
+        break;
+        
+      case 'json':
+      default:
+        // --- JSON Format (Default) ---
+        // Use JSON.stringify to pretty-print the JSON
+        outputData = JSON.stringify(entries, null, 2);
+        contentType = 'application/json';
+        fileName += '.json';
+        break;
+    }
+
+    // 5. Send the response
+    // Set headers (now using our dynamic variables)
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    
+    // Send the formatted data
+    res.status(200).send(outputData);
+
+  } catch (error) {
+    console.error('Error exporting journal entries:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
+// Now, add the new function to your module.exports at the very bottom
+// of the file.
+
+
+
 module.exports = {
   createJournalEntry,
   getAllJournalEntries,
@@ -446,5 +542,6 @@ module.exports = {
   getAIFeedback,
   getJournalStats,
   getJournalPrompts,
+  exportJournalEntries,
 };
 

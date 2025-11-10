@@ -7,8 +7,9 @@ const {
   updateJournalEntry,
   deleteJournalEntry,
   getAIFeedback,
-  getJournalStats,  
+  getJournalStats,
   getJournalPrompts,
+  exportJournalEntries, // <-- 1. IMPORT THE NEW FUNCTION
 } = require('./journal.controller');
 
 const router = Router();
@@ -27,6 +28,11 @@ router.get('/stats', authMiddleware, getJournalStats);
 
 // GET /api/journal/prompts -> Get journaling prompts
 router.get('/prompts', authMiddleware, getJournalPrompts);
+
+// --- NEW EXPORT ROUTE ---
+// GET /api/journal/export -> Download all user's entries as a JSON file
+// (Place this BEFORE the '/:entryId' route)
+router.get('/export', authMiddleware, exportJournalEntries); // <-- 2. ADD THE NEW ROUTE
 
 // GET /api/journal/:entryId -> Get a single journal entry by its ID
 router.get('/:entryId', authMiddleware, getJournalEntryById);

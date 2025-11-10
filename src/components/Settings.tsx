@@ -19,7 +19,8 @@ import {
   Lock,
   Download,
   Trash2,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from "lucide-react";
 import {
   AlertDialog,
@@ -34,9 +35,11 @@ import {
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Settings = () => {
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
   const [activeSection, setActiveSection] = useState("account");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -60,12 +63,6 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     displayName: "",
     email: "",
     bio: "",
-    
-    // Privacy Settings
-    profileVisibility: "public",
-    showOnlineStatus: true,
-    allowDirectMessages: true,
-    showActivity: true,
     
     // Notification Settings
     emailNotifications: true,
@@ -426,14 +423,12 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   };
 
   const sections = [
-    { id: "account", label: "Account", icon: User },
-    { id: "privacy", label: "Privacy & Safety", icon: Shield },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "feed", label: "Feed Settings", icon: Eye },
-    { id: "appearance", label: "Appearance", icon: Moon },
-    { id: "language", label: "Language & Region", icon: Globe },
-    { id: "data", label: "Data & Privacy", icon: Download }
-  ];
+     { id: "account", label: t('settings.nav.account'), icon: User },
+     { id: "notifications", label: t('settings.nav.notifications'), icon: Bell },
+     { id: "appearance", label: t('settings.nav.appearance'), icon: Moon },
+    { id: "language", label: t('settings.nav.language'), icon: Globe },
+     { id: "data", label: t('settings.nav.data'), icon: Download }
+ ];
 
   const renderAccountSettings = () => (
     <div className="space-y-6">
@@ -495,62 +490,6 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   );
 
 
-  function renderPrivacySettings() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-4">Profile Privacy</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Profile Visibility</Label>
-              <p className="text-sm text-muted-foreground">Who can see your profile</p>
-            </div>
-            <Select value={settings.profileVisibility} onValueChange={(value) => handleSettingChange("profileVisibility", value)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Show Online Status</Label>
-              <p className="text-sm text-muted-foreground">Let others see when you're active</p>
-            </div>
-            <Switch
-              checked={settings.showOnlineStatus}
-              onCheckedChange={(checked) => handleSettingChange("showOnlineStatus", checked)} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Allow Direct Messages</Label>
-              <p className="text-sm text-muted-foreground">Let others send you private messages</p>
-            </div>
-            <Switch
-              checked={settings.allowDirectMessages}
-              onCheckedChange={(checked) => handleSettingChange("allowDirectMessages", checked)} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Show Activity</Label>
-              <p className="text-sm text-muted-foreground">Display your recent activity</p>
-            </div>
-            <Switch
-              checked={settings.showActivity}
-              onCheckedChange={(checked) => handleSettingChange("showActivity", checked)} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
   const renderNotificationSettings = () => (
     <div className="space-y-6">
@@ -729,22 +668,24 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const renderLanguageSettings = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-4">Localization</h3>
+        <h3 className="text-lg font-medium mb-4">{t('settings.languagePage.title')}</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label>Language</Label>
+              <Label>{t('settings.languagePage.subtitle')}</Label>
               <p className="text-sm text-muted-foreground">Interface language</p>
             </div>
-            <Select value={settings.language} onValueChange={(value) => handleSettingChange("language", value)}>
+            <Select
+            value={i18n.language}
+            onValueChange={(value) => i18n.changeLanguage(value)}
+            >
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="en">English</SelectItem>
                 <SelectItem value="es">Español</SelectItem>
-                <SelectItem value="fr">Français</SelectItem>
-                <SelectItem value="de">Deutsch</SelectItem>
+                <SelectItem value="hi">हिन्दी</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -771,22 +712,114 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     </div>
   );
 
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('json');
+
+  const handleExportJournal = async (format = 'json') => {
+    setIsExporting(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to export your journal data.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`http://localhost:3000/api/journal/export?format=${format}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Get filename from content-disposition header or use default
+      const disposition = response.headers.get('content-disposition');
+      let filename = `journal-export-${new Date().toISOString().split('T')[0]}.${format}`;
+      if (disposition && disposition.includes('filename=')) {
+        filename = disposition.split('filename=')[1].replace(/"/g, '');
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+      toast({
+        title: "Export Started",
+        description: `Your journal data is being downloaded as ${format.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: "Export Failed",
+        description: error.message || "Failed to export journal data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const renderDataSettings = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-4">Data Management</h3>
+        <h3 className="text-lg font-medium mb-4">{t('settings.dataPage.title')}</h3>
         <div className="space-y-3">
-          <Button variant="outline" className="w-full justify-start">
-            <Download className="h-4 w-4 mr-2" />
-            Download My Data
-          </Button>
-                    <Button 
+<div className="flex gap-2">
+            <Select 
+              value={exportFormat} 
+              onValueChange={setExportFormat}
+              disabled={isExporting}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="json">JSON</SelectItem>
+                <SelectItem value="csv">CSV</SelectItem>
+                <SelectItem value="txt">TXT</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button 
+              variant="outline" 
+              className="flex-1 justify-start"
+              onClick={() => handleExportJournal(exportFormat)}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                     {t('settings.dataPage.exportLabel')}                </>
+              )}
+            </Button>
+          </div>
+          <Button 
             variant="outline" 
             className="w-full justify-start text-destructive hover:text-destructive"
             onClick={() => setShowDeleteDialog(true)}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete Account
+            {t('settings.dataPage.deleteLabel')}
           </Button>
         </div>
       </div>
@@ -824,7 +857,6 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const renderContent = () => {
     switch (activeSection) {
       case "account": return renderAccountSettings();
-      case "privacy": return renderPrivacySettings();
       case "notifications": return renderNotificationSettings();
       case "feed": return renderFeedSettings();
       case "appearance": return renderAppearanceSettings();
@@ -843,10 +875,10 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
             <Link to="/">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                {t('settings.backButton')}
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">Settings</h1>
+            <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
           </div>
         </div>
       </div>
@@ -857,7 +889,7 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Settings</CardTitle>
+                <CardTitle className="text-lg">{t('settings.title')}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <nav className="space-y-1">
