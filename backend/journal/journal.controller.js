@@ -151,7 +151,7 @@ const getAIFeedback = async (req, res) => {
     const userId = req.user.userId;
 
     // 1. Fetch the journal entry and verify ownership
-    const entryQuery = 'SELECT content, author_id FROM journal_entries WHERE entry_id = $1';
+    const entryQuery = 'SELECT content, author_id, ai_feedback FROM journal_entries WHERE entry_id = $1';
     const entryResult = await pool.query(entryQuery, [entryId]);
 
     if (entryResult.rows.length === 0) {
@@ -163,6 +163,15 @@ const getAIFeedback = async (req, res) => {
       return res.status(403).json({ error: 'Forbidden: You are not the author of this entry.' });
     }
 
+    // If feedback already exists in the database, return it immediately.
+    // This saves an expensive API call and ensures consistency.
+    if (entry.ai_feedback) {
+      console.log(`[Cache Hit] Returning saved feedback for entryId: ${entryId}`);
+      return res.status(200).json({ feedback: entry.ai_feedback });
+    }
+
+    console.log(`[Cache Miss] Generating new feedback for entryId: ${entryId}`);
+    
     const journalContent = entry.content;
 
     // 2. Define the System Prompt for the AI's persona and rules
@@ -289,11 +298,14 @@ const getAIFeedback = async (req, res) => {
       sentiment = 'negative';
     }
 
-    // 6. Update the journal entry in the database with the extracted sentiment
-    const updateSentimentQuery = `
-      UPDATE journal_entries SET ai_sentiment = $1 WHERE entry_id = $2 AND author_id = $3;
+      // 6. Update the journal entry in the database with the new AI feedback and sentiment
+    const updateQuery = `
+      UPDATE journal_entries 
+      SET ai_feedback = $1, ai_sentiment = $2 
+      WHERE entry_id = $3 AND author_id = $4;
     `;
-    await pool.query(updateSentimentQuery, [sentiment, entryId, userId]);
+
+    await pool.query(updateQuery, [aiResponseText, sentiment, entryId, userId]);
 
     // 7. Send the AI's feedback back to the user
     res.status(200).json({ feedback: aiResponseText });
@@ -384,6 +396,7 @@ const getJournalStats = async (req, res) => {
       }
     }
 
+    await pool.query(updateQuery, [aiResponseText, sentiment, entryId, userId]);
     // --- Combine Results ---
     res.status(200).json({
       totalEntries: totalEntries,

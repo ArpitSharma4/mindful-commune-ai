@@ -31,7 +31,7 @@ const handleContactForm = async (req, res) => {
     const { data, error } = await resend.emails.send({
       // --- THIS IS THE CHANGE ---
       from: 'Support Form <onboarding@resend.dev>', // Use this "from" address for testing
-      to: 'arpitsharma0004@gmail.com', // This MUST be the email you used to sign up for Resend
+      to: 'echo.well.ai@gmail.com', // This MUST be the email you used to sign up for Resend
       // --- END OF CHANGE ---
       
       reply_to: email, // This still works! When you reply, it will go to the user
