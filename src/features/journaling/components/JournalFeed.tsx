@@ -34,11 +34,13 @@ import { useToast } from '@/hooks/use-toast';
 interface JournalFeedProps {
   onCreateEntry?: () => void;
   className?: string;
+  refreshKey?: number; // Add refreshKey prop
 }
 
 export const JournalFeed: React.FC<JournalFeedProps> = ({
   onCreateEntry,
-  className
+  className,
+  refreshKey = 0 // Default to 0 if not provided
 }) => {
   const { toast } = useToast();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -52,7 +54,7 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
 
   useEffect(() => {
     loadEntries();
-  }, []);
+  }, [refreshKey]); // Reload entries when refreshKey changes
 
   useEffect(() => {
     // Load AI feedback for all entries when entries change
@@ -495,8 +497,10 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
                 </p>
               </div>
               
-              {/* AI Feedback */}
-              {aiFeedback[selectedEntry.id] && (
+              {/* Achievements & AI Feedback */}
+              <div className="mt-6 px-6">
+                <h3 className="text-xl font-semibold mb-4">Achievements</h3>
+                {aiFeedback[selectedEntry.id] ? (
                 <div className="mt-6">
                   <AIFeedback 
                     feedback={{
@@ -507,7 +511,12 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
                     }}
                   />
                 </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  <p>No achievements yet. Keep journaling to unlock achievements!</p>
+                </div>
               )}
+              </div>
             </CardContent>
 
             <div className="border-t p-4 flex justify-end">

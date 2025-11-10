@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import LoginModal from "./LoginModal";
+import AvatarEditModal from "./AvatarEditModal";
 import {
   Dialog,
   DialogContent,
@@ -32,8 +33,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getUserPoints } from "@/features/gamification/services";
-import type { Achievement, UserPoints as UserPointsType } from "@/features/gamification/types";
+import { useGamification } from "@/contexts/GamificationContext";
+import { useNavigate } from 'react-router-dom';
+import UserProfileModal from "./UserProfileModal";
 interface UserProfileDropdownProps {
   isOpen: boolean;
   onClose: () => void;
@@ -54,18 +56,57 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [userPoints, setUserPoints] = useState<UserPointsType | null>(null);
-  const [showAchievements, setShowAchievements] = useState(false);
-
-  // Load user points
-  const loadUserPoints = async (userId: string) => {
-    try {
-      const points = await getUserPoints(userId);
-      setUserPoints(points);
-    } catch (error) {
-      console.error('Error loading user points:', error);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [hasNewAchievements, setHasNewAchievements] = useState(false);
+  
+  const handleAvatarUpdate = (newAvatarUrl: string) => {
+    setUserData(prev => prev ? { ...prev, avatar_url: newAvatarUrl } : null);
+    // Update localStorage if needed
+    const storedUserData = localStorage.getItem('userData');
+    if (storedUserData) {
+      const parsedUserData = JSON.parse(storedUserData);
+      localStorage.setItem('userData', JSON.stringify({
+        ...parsedUserData,
+        avatar_url: newAvatarUrl
+      }));
     }
   };
+  const { totalPoints, currentStreak, isLoading: isLoadingPoints } = useGamification();
+  const navigate = useNavigate();
+
+  // Check for new achievements
+  useEffect(() => {
+    const checkNewAchievements = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('http://localhost:3000/api/gamification/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const seenAchievements = JSON.parse(localStorage.getItem('seenAchievements') || '[]');
+          const hasUnseen = data.achievements.some(
+            (a: any) => a.isEarned && !seenAchievements.includes(a.id)
+          );
+          setHasNewAchievements(hasUnseen);
+        }
+      } catch (error) {
+        console.error('Error checking achievements:', error);
+      }
+    };
+
+    // Check every 30 seconds if user is logged in
+    if (isLoggedIn) {
+      checkNewAchievements();
+      const interval = setInterval(checkNewAchievements, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn]);
 
   // Check authentication status on component mount and listen for changes
   useEffect(() => {
@@ -78,20 +119,16 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
           const parsedUserData = JSON.parse(storedUserData);
           setUserData(parsedUserData);
           setIsLoggedIn(true);
-          // Load user points when authenticated
-          loadUserPoints(parsedUserData.userId);
         } catch (error) {
           // If there's an error parsing user data, clear storage
           localStorage.removeItem('authToken');
           localStorage.removeItem('userData');
           setUserData(null);
           setIsLoggedIn(false);
-          setUserPoints(null);
         }
       } else {
         setUserData(null);
         setIsLoggedIn(false);
-        setUserPoints(null);
       }
     };
     
@@ -135,7 +172,7 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
     setIsLoginModalOpen(false);
     onClose();
     toast({
-      title: "Login Successful! 🎉",
+      title: "Login Successful! ",
       description: "Welcome back to EchoWell!",
     });
   };
@@ -164,80 +201,82 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
     });
     onClose();
   };
-const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (file) {
-    setAvatarFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  }
-};
 
-const handleAvatarUpload = async () => {
-  if (!avatarFile) {
-    toast({
-      description: "Please select an image file to upload.",
-      variant: "destructive",
-    });
-    return;
-  }
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-  setIsUploadingAvatar(true);
-  try {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) {
       toast({
-        title: "Error",
-        description: "You must be logged in to upload an avatar.",
+        description: "Please select an image file to upload.",
         variant: "destructive",
       });
       return;
     }
 
-    const formData = new FormData();
-    formData.append('avatar', avatarFile);
+    setIsUploadingAvatar(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to upload an avatar.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    const response = await fetch('/api/users/avatar', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      body: formData
-    });
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
 
-    if (response.ok) {
-      const data = await response.json();
-      toast({
-        title: "Avatar Updated",
-        description: "Your profile picture has been updated successfully.",
+      const response = await fetch('/api/users/avatar', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
       });
-      setShowAvatarDialog(false);
-      setAvatarFile(null);
-      setAvatarPreview(null);
-      // Refresh user data
-      window.location.reload();
-    } else {
-      const data = await response.json();
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Avatar Updated",
+          description: "Your profile picture has been updated successfully.",
+        });
+        setShowAvatarDialog(false);
+        setAvatarFile(null);
+        setAvatarPreview(null);
+        // Refresh user data
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Upload Failed",
+          description: data.error || "Failed to upload avatar.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
       toast({
-        title: "Upload Failed",
-        description: data.error || "Failed to upload avatar.",
+        title: "Network Error",
+        description: "Unable to connect to the server.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploadingAvatar(false);
     }
-  } catch (error) {
-    console.error('Error uploading avatar:', error);
-    toast({
-      title: "Network Error",
-      description: "Unable to connect to the server.",
-      variant: "destructive",
-    });
-  } finally {
-    setIsUploadingAvatar(false);
-  }
-};
+  };
+
   // Generate initials from username
   const getInitials = (username: string) => {
     return username
@@ -304,55 +343,58 @@ const handleAvatarUpload = async () => {
               <div className="text-sm text-muted-foreground">
                 {getUsernameDisplay(userData.username)}
               </div>
-              {userPoints && (
-                <div className="flex items-center gap-1 mt-1">
-                  <Zap className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                  <span className="text-xs font-medium text-yellow-600">
-                    {userPoints.totalPoints} points
+              {isLoadingPoints ? (
+                <p className="text-xs text-muted-foreground pt-1">Loading stats...</p>
+              ) : (
+                <div className="flex items-center pt-2 gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Zap className="h-4 w-4 text-yellow-500" />
+                    {totalPoints} points
                   </span>
-                  <span className="mx-1 text-muted-foreground">•</span>
-                  <Flame className="h-3 w-3 text-orange-500" />
-                  <span className="text-xs font-medium text-orange-600">
-                    {userPoints.currentStreak} day{userPoints.currentStreak !== 1 ? 's' : ''}
+                  <span className="flex items-center gap-1">
+                    <Flame className="h-4 w-4 text-red-500" />
+                    {currentStreak} day streak
                   </span>
                 </div>
               )}
             </div>
-            <Button variant="ghost" size="sm" onClick={() => handleMenuItem("View Profile")}>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowProfileModal(true);
+                onClose();
+              }}
+            >
               <User className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Menu Items */}
           <div className="space-y-1">
-          <Button
-  variant="ghost"
-  className="w-full justify-start gap-3 h-auto p-3"
-  onClick={() => {
-    // TODO: Open avatar upload dialog here
-    toast({
-      title: "Edit Avatar",
-      description: "Avatar upload dialog will open here",
-    });
-    onClose();
-  }}
->
-  <Edit className="h-4 w-4" />
-  <span>Edit Avatar</span>
-</Button>
-
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => setShowAchievements(true)}
+              onClick={() => setShowAvatarDialog(true)}
             >
-              <Trophy className="h-4 w-4" />
-              <div className="flex-1 text-left">
-                <span>Achievements</span>
-                <div className="text-xs text-muted-foreground">
-                  {userPoints ? `${userPoints.achievements.filter(a => a.unlocked).length} of ${userPoints.achievements.length} unlocked` : 'Loading...'}
-                </div>
-              </div>
+              <Edit className="h-4 w-4" />
+              <span>Edit Avatar</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              className="w-full justify-start relative"
+              onClick={() => {
+                onClose();
+                navigate('/achievements');
+              }}
+            >
+              <Trophy className="mr-2 h-4 w-4" />
+              Achievements
+              {hasNewAchievements && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
             </Button>
 
             <Button
@@ -391,78 +433,25 @@ const handleAvatarUpload = async () => {
         </div>
       </div>
 
+      {/* Avatar Edit Modal */}
+      <AvatarEditModal
+        isOpen={showAvatarDialog}
+        onClose={() => setShowAvatarDialog(false)}
+        currentAvatar={userData?.avatar_url || ''}
+        username={userData?.username || 'User'}
+        onAvatarUpdate={handleAvatarUpdate}
+      />
+
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
       />
-
-      {/* Achievements Dialog */}
-      <Dialog open={showAchievements} onOpenChange={setShowAchievements}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-500" />
-              Your Achievements
-            </DialogTitle>
-            {userPoints && (
-              <div className="flex items-center justify-between py-2 px-1">
-                <div className="flex items-center gap-1">
-                  <Zap className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                  <span className="text-sm font-medium">{userPoints.totalPoints} points</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Flame className="h-4 w-4 text-orange-500" />
-                  <span className="text-sm font-medium">{userPoints.currentStreak} day streak</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <BookOpen className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm font-medium">{userPoints.entriesCount} entries</span>
-                </div>
-              </div>
-            )}
-          </DialogHeader>
-          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-            {userPoints?.achievements.map((achievement) => (
-              <div 
-                key={achievement.id}
-                className={`flex items-start gap-3 p-3 rounded-lg ${achievement.unlocked ? 'bg-amber-50' : 'opacity-60'}`}
-              >
-                <div className={`p-2 rounded-full ${achievement.unlocked ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`}>
-                  {getAchievementIcon(achievement.id)}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">{achievement.name}</div>
-                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                  {achievement.unlocked ? (
-                    <div className="flex items-center gap-1 mt-1">
-                      <Zap className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                      <span className="text-xs font-medium text-yellow-600">+{achievement.points} points</span>
-                      {achievement.unlockedAt && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          {new Date(achievement.unlockedAt).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Keep going!
-                    </div>
-                  )}
-                </div>
-                {achievement.unlocked && (
-                  <div className="text-amber-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      
+      <UserProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
     </>
   );
 };

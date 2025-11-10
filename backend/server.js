@@ -12,6 +12,9 @@ const AppleStrategy = require('passport-apple'); // Apple OAuth strategy
 const jwt = require('jsonwebtoken'); // For generating JWT tokens
 const pool = require('./db'); // Database connection
 const chatRoutes = require('./chat/chat.route.js');
+// In server.js
+const gamificationRoutes = require('./gamification/gamification.route'); // Adjust path
+
 
 // --- Top-Level Router Imports ---
 // Import the router files for each major feature/resource in the application.
@@ -58,7 +61,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use('/api/support', supportRoutes);
-
+app.use('/api/gamification', gamificationRoutes);
 
 // --- Passport OAuth Configuration ---
 // Configure Passport strategies for Google and Apple authentication
@@ -350,7 +353,8 @@ app.post('/api/auth/apple/callback',
 app.use('/api/users', userRoutes);
 app.use('/api/communities', communityRoutes);
 app.use('/api/posts', postRoutes);
-app.use('/api/journal', journalRoutes); // <-- Added the new journal route
+app.use('/api/journal', journalRoutes);
+app.use('/api/gamification', gamificationRoutes); // Add gamification routes
 app.use('/api/support', supportRoutes);
 app.use('/api/chat', chatRoutes);
 

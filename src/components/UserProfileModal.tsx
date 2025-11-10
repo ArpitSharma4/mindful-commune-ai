@@ -28,37 +28,55 @@ const UserProfileModal = ({ isOpen, onClose }: UserProfileModalProps) => {
     avatar: ""
   });
 
-  // Fetch user data on component mount
+  // Fetch user data on component mount and when modal opens
   useEffect(() => {
+    if (!isOpen) return;
+    
     const fetchUserData = async () => {
       try {
         const token = localStorage.getItem('authToken');
-        if (token) {
-          const response = await fetch('/api/users/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
+        if (!token) {
+          toast({
+            title: 'Authentication required',
+            description: 'Please log in to view your profile',
+            variant: 'destructive'
           });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            setProfileData(prev => ({
-              ...prev,
-              name: userData.username,
-              email: userData.email,
-              avatar: userData.avatar_url || ""
-            }));
-          }
+          onClose();
+          return;
         }
+
+        const response = await fetch('/api/users/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to fetch user data');
+        }
+        
+        const userData = await response.json();
+        setProfileData(prev => ({
+          ...prev,
+          name: userData.username || 'Anonymous User',
+          email: userData.email || 'No email provided',
+          avatar: userData.avatar_url || "",
+          joinDate: userData.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Unknown'
+        }));
       } catch (error) {
         console.error('Error fetching user data:', error);
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to load profile',
+          variant: 'destructive'
+        });
+        onClose();
       }
     };
-    
-    if (isOpen) {
-      fetchUserData();
-    }
-  }, [isOpen]);
+
+    fetchUserData();
+  }, [isOpen, onClose, toast]);
 
   const handleSave = () => {
     toast({

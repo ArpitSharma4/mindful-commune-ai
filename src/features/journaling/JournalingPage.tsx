@@ -17,6 +17,7 @@ import { JournalFeed, CreateJournalEntry } from './components';
 import { journalService } from './services';
 import { JournalEntry, JournalStats } from './types';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import LeftSidebar from '@/components/LeftSidebar';
 
 interface JournalingPageProps {
@@ -31,16 +32,48 @@ export const JournalingPage: React.FC<JournalingPageProps> = ({ className }) => 
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { toast } = useToast();
   
   console.log('JournalingPage state:', { activeTab, showCreateForm, stats, error });
 
-  const handleEntryCreated = (newEntry: JournalEntry) => {
-    setShowCreateForm(false);
-    setActiveTab('feed');
-    // Refresh stats if needed
-    loadStats();
-    // Force feed to reload by changing the key
-    setRefreshKey(prev => prev + 1);
+  const handleEntryCreated = async (newEntry: JournalEntry) => {
+    try {
+      // First verify the entry was actually created by trying to fetch it
+      const storedUserData = localStorage.getItem('userData');
+      if (!storedUserData) {
+        throw new Error('User not authenticated');
+      }
+      
+      const userData = JSON.parse(storedUserData);
+      const entries = await journalService.getJournalEntries(userData.userId);
+      const entryExists = entries.some(entry => entry.id === newEntry.id);
+      
+      if (!entryExists) {
+        throw new Error('Failed to verify journal entry creation');
+      }
+      
+      // Only update UI if the entry was actually created
+      setShowCreateForm(false);
+      setActiveTab('feed');
+      
+      // Refresh stats and feed
+      await loadStats();
+      setRefreshKey(prev => prev + 1);
+      
+      toast({
+        title: "Entry Created",
+        description: "Your journal entry has been saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error verifying journal entry:', error);
+      toast({
+        title: "Error",
+        description: "There was an issue saving your journal entry. Please try again.",
+        variant: "destructive"
+      });
+      // Don't change the UI state if there was an error
+      setShowCreateForm(true);
+    }
   };
 
   const loadStats = async () => {

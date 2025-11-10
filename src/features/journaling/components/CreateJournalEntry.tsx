@@ -54,71 +54,119 @@ export const CreateJournalEntry: React.FC<CreateJournalEntryProps> = ({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+
     e.preventDefault();
+
     
+
     if (!formData.content.trim()) {
+
       toast({
+
         title: "Missing Information",
+
         description: "Please fill in the content field.",
+
         variant: "destructive"
+
       });
+
       return;
+
     }
+
+
 
     setIsSubmitting(true);
+
     
+
     try {
-      // Debug: Check authentication status
+
+      // 1. Check Auth
+
       const token = localStorage.getItem('authToken');
+
       const storedUserData = localStorage.getItem('userData');
+
       
-      console.log('🔍 Debug - Authentication Check:');
-      console.log('- Token exists:', !!token);
-      console.log('- User data exists:', !!storedUserData);
-      
-      if (!token) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to create journal entries.",
-          variant: "destructive"
-        });
-        return;
+
+      if (!token || !storedUserData) {
+
+        throw new Error("User is not authenticated. Please log in again.");
+
       }
+
       
-      if (!storedUserData) {
-        toast({
-          title: "User Data Missing",
-          description: "Please log in again to refresh your session.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
+
       const userData = JSON.parse(storedUserData);
-      console.log('- User ID:', userData.userId);
-      console.log('- Form data:', formData);
+
       
+
+      // 2. Call API
+
       const newEntry = await journalService.createJournalEntry(formData, userData.userId);
+
       
+
+      if (!newEntry) {
+
+        throw new Error('No response from server');
+
+      }
+
+      
+
+      // 3. Show SUCCESS Toast
+
       toast({
+
         title: "Entry Created",
+
         description: "Your journal entry has been saved successfully.",
+
+     });
+
+
+
+      // 4. Reset form
+
+      setFormData({ title: '', content: '', mood: 'okay' });
+
+      setSelectedPrompt(null);
+
+      
+
+      // 5. Call parent callback
+
+      onEntryCreated?.(newEntry);
+
+
+
+    } catch (error) {
+
+      // 6. Show FAILURE Toast
+
+      console.error('Error in journal entry creation:', error);
+
+      toast({
+
+        title: "Save Failed",
+
+        description: error.message || "Could not save your journal entry. Please try again.",
+
+        variant: "destructive"
+
       });
 
-      // Reset form
-      setFormData({ title: '', content: '', mood: 'okay' });
-      setSelectedPrompt(null);
-      
-      onEntryCreated?.(newEntry);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create journal entry. Please try again.",
-        variant: "destructive"
-      });
     } finally {
+
+      // 7. Stop spinner
+
       setIsSubmitting(false);
+
     }
+
   };
 
   const getMoodIcon = (mood: MoodType) => {
