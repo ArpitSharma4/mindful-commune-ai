@@ -9,7 +9,14 @@ import {
   TrendingUp, 
   LogIn, 
   LogOut,
-  Settings
+  Settings,
+  Zap,
+  Award,
+  Flame,
+  CalendarCheck,
+  BookOpen,
+  BookMarked,
+  Star
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -25,10 +32,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getUserPoints } from "@/features/gamification/services";
+import type { Achievement, UserPoints as UserPointsType } from "@/features/gamification/types";
 interface UserProfileDropdownProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// Using UserPointsType from gamification/types
 
 const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
   const { toast } = useToast();
@@ -43,6 +54,18 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [userPoints, setUserPoints] = useState<UserPointsType | null>(null);
+  const [showAchievements, setShowAchievements] = useState(false);
+
+  // Load user points
+  const loadUserPoints = async (userId: string) => {
+    try {
+      const points = await getUserPoints(userId);
+      setUserPoints(points);
+    } catch (error) {
+      console.error('Error loading user points:', error);
+    }
+  };
 
   // Check authentication status on component mount and listen for changes
   useEffect(() => {
@@ -55,16 +78,20 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
           const parsedUserData = JSON.parse(storedUserData);
           setUserData(parsedUserData);
           setIsLoggedIn(true);
+          // Load user points when authenticated
+          loadUserPoints(parsedUserData.userId);
         } catch (error) {
           // If there's an error parsing user data, clear storage
           localStorage.removeItem('authToken');
           localStorage.removeItem('userData');
           setUserData(null);
           setIsLoggedIn(false);
+          setUserPoints(null);
         }
       } else {
         setUserData(null);
         setIsLoggedIn(false);
+        setUserPoints(null);
       }
     };
     
@@ -226,6 +253,28 @@ const handleAvatarUpload = async () => {
     return `u/${username}`;
   };
 
+  // Get achievement icon component
+  const getAchievementIcon = (id: string) => {
+    switch (id) {
+      case 'first_entry':
+        return <BookOpen className="h-4 w-4" />;
+      case 'streak_3_days':
+        return <Flame className="h-4 w-4" />;
+      case 'streak_7_days':
+        return <Award className="h-4 w-4" />;
+      case 'streak_30_days':
+        return <CalendarCheck className="h-4 w-4" />;
+      case 'journal_enthusiast':
+        return <BookMarked className="h-4 w-4" />;
+      case 'journal_master':
+        return <Star className="h-4 w-4" />;
+      case 'journal_legend':
+        return <Trophy className="h-4 w-4" />;
+      default:
+        return <Award className="h-4 w-4" />;
+    }
+  };
+
   // Don't show dropdown if not open or user is not logged in
   if (!isOpen || !isLoggedIn || !userData) return null;
 
@@ -255,6 +304,19 @@ const handleAvatarUpload = async () => {
               <div className="text-sm text-muted-foreground">
                 {getUsernameDisplay(userData.username)}
               </div>
+              {userPoints && (
+                <div className="flex items-center gap-1 mt-1">
+                  <Zap className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                  <span className="text-xs font-medium text-yellow-600">
+                    {userPoints.totalPoints} points
+                  </span>
+                  <span className="mx-1 text-muted-foreground">•</span>
+                  <Flame className="h-3 w-3 text-orange-500" />
+                  <span className="text-xs font-medium text-orange-600">
+                    {userPoints.currentStreak} day{userPoints.currentStreak !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
             </div>
             <Button variant="ghost" size="sm" onClick={() => handleMenuItem("View Profile")}>
               <User className="h-4 w-4" />
@@ -282,12 +344,14 @@ const handleAvatarUpload = async () => {
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Streaks")}
+              onClick={() => setShowAchievements(true)}
             >
               <Trophy className="h-4 w-4" />
               <div className="flex-1 text-left">
-                <span>Streaks</span>
-                <div className="text-xs text-muted-foreground">5 unlocked</div>
+                <span>Achievements</span>
+                <div className="text-xs text-muted-foreground">
+                  {userPoints ? `${userPoints.achievements.filter(a => a.unlocked).length} of ${userPoints.achievements.length} unlocked` : 'Loading...'}
+                </div>
               </div>
             </Button>
 
@@ -332,6 +396,73 @@ const handleAvatarUpload = async () => {
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
       />
+
+      {/* Achievements Dialog */}
+      <Dialog open={showAchievements} onOpenChange={setShowAchievements}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              Your Achievements
+            </DialogTitle>
+            {userPoints && (
+              <div className="flex items-center justify-between py-2 px-1">
+                <div className="flex items-center gap-1">
+                  <Zap className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                  <span className="text-sm font-medium">{userPoints.totalPoints} points</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Flame className="h-4 w-4 text-orange-500" />
+                  <span className="text-sm font-medium">{userPoints.currentStreak} day streak</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <BookOpen className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm font-medium">{userPoints.entriesCount} entries</span>
+                </div>
+              </div>
+            )}
+          </DialogHeader>
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+            {userPoints?.achievements.map((achievement) => (
+              <div 
+                key={achievement.id}
+                className={`flex items-start gap-3 p-3 rounded-lg ${achievement.unlocked ? 'bg-amber-50' : 'opacity-60'}`}
+              >
+                <div className={`p-2 rounded-full ${achievement.unlocked ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`}>
+                  {getAchievementIcon(achievement.id)}
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">{achievement.name}</div>
+                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                  {achievement.unlocked ? (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Zap className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                      <span className="text-xs font-medium text-yellow-600">+{achievement.points} points</span>
+                      {achievement.unlockedAt && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {new Date(achievement.unlockedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Keep going!
+                    </div>
+                  )}
+                </div>
+                {achievement.unlocked && (
+                  <div className="text-amber-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
