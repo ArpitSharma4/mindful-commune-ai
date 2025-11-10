@@ -1,61 +1,58 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Create a reusable transporter using environment variables
-function createTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+// Initialize Resend with your API key from .env
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  if (!host || !user || !pass) {
-    throw new Error('SMTP configuration missing. Please set SMTP_HOST, SMTP_USER, SMTP_PASS.');
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // true for 465, false for other ports
-    auth: { user, pass },
-  });
-}
-
-// POST /api/support/contact
-async function sendSupportMessage(req, res) {
+const handleContactForm = async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body || {};
+    const { name, email, subject, message } = req.body;
+
+    // 1. Validation (Basic)
     if (!name || !email || !subject || !message) {
-      return res.status(400).json({ error: 'name, email, subject, and message are required' });
+      return res.status(400).json({ error: 'All fields are required.' });
     }
 
-    const toAddress = process.env.SUPPORT_TO_EMAIL || 'arpitsharma4002@gmail.com';
-
-    const transporter = createTransporter();
-
-    const html = `
-      <h2>New Support Message</h2>
-      <p><strong>From:</strong> ${name} &lt;${email}&gt;</p>
-      <p><strong>Subject:</strong> ${subject}</p>
-      <p><strong>Message:</strong></p>
-      <pre style="white-space:pre-wrap;font-family:inherit">${message}</pre>
-      <hr />
-      <small>Mindful Commune AI</small>
+    // 2. Format the Email
+    const emailHtml = `
+      <div>
+        <h2>New Support Request</h2>
+        <p>You have a new contact form submission from your website.</p>
+        <hr>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Subject:</strong> ${subject}</p>
+        <hr>
+        <h3>Message:</h3>
+        <p>${message.replace(/\n/g, '<br>')}</p>
+      </div>
     `;
 
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || `Mindful Commune AI <${process.env.SMTP_USER}>`,
-      to: toAddress,
-      subject: `[Support] ${subject}`,
-      replyTo: email,
-      html,
+    // 3. Send the Email (Development Mode)
+    const { data, error } = await resend.emails.send({
+      // --- THIS IS THE CHANGE ---
+      from: 'Support Form <onboarding@resend.dev>', // Use this "from" address for testing
+      to: 'arpitsharma0004@gmail.com', // This MUST be the email you used to sign up for Resend
+      // --- END OF CHANGE ---
+      
+      reply_to: email, // This still works! When you reply, it will go to the user
+      subject: `Support: ${subject}`,
+      html: emailHtml,
     });
 
-    res.json({ ok: true, message: 'Support message sent' });
-  } catch (err) {
-    console.error('Error sending support email:', err);
-    res.status(500).json({ error: 'Failed to send support message' });
+    if (error) {
+      console.error({ error });
+      return res.status(500).json({ error: 'Failed to send message.' });
+    }
+
+    // 4. Send Success Response
+    res.status(200).json({ message: 'Message sent successfully!' });
+
+  } catch (error) {
+    console.error('Error in contact form handler:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-}
+};
 
-module.exports = { sendSupportMessage };
-
-
+module.exports = {
+  handleContactForm,
+};

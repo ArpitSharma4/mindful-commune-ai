@@ -1,10 +1,9 @@
 const { Router } = require('express');
-const { sendSupportMessage } = require('./support.controller');
-
+const { handleContactForm } = require('./support.controller');
 const router = Router();
 
-router.post('/contact', sendSupportMessage);
+// --- ADD THIS NEW ROUTE ---
+// POST /api/support/contact
+router.post('/contact', handleContactForm);
 
 module.exports = router;
-
-

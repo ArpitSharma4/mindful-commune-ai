@@ -56,6 +56,7 @@ app.use(session({
 // Initialize Passport and restore authentication state from session
 app.use(passport.initialize());
 app.use(passport.session());
+app.use('/api/support', supportRoutes);
 
 
 // --- Passport OAuth Configuration ---
