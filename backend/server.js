@@ -11,6 +11,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy; // Google OA
 const AppleStrategy = require('passport-apple'); // Apple OAuth strategy
 const jwt = require('jsonwebtoken'); // For generating JWT tokens
 const pool = require('./db'); // Database connection
+const chatRoutes = require('./chat/chat.route.js');
 
 // --- Top-Level Router Imports ---
 // Import the router files for each major feature/resource in the application.
@@ -351,7 +352,7 @@ app.use('/api/communities', communityRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/journal', journalRoutes); // <-- Added the new journal route
 app.use('/api/support', supportRoutes);
-
+app.use('/api/chat', chatRoutes);
 
 // --- Error Handling & Final Middleware ---
 
