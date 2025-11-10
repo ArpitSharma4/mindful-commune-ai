@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { 
   BookOpen, 
   PenTool, 
@@ -43,45 +44,95 @@ export const JournalingPage: React.FC<JournalingPageProps> = ({ className }) => 
   };
 
   const loadStats = async () => {
-    try {
-      // Get the current user ID from localStorage
-      const storedUserData = localStorage.getItem('userData');
-      if (!storedUserData) {
-        console.log('No user data found, skipping stats load');
-        return;
-      }
-      
-      const userData = JSON.parse(storedUserData);
-      const entries = await journalService.getJournalEntries(userData.userId);
-      
-      const totalEntries = entries.length;
-      const moodValues = { great: 5, good: 4, okay: 3, bad: 2, awful: 1 };
-      const averageMood = entries.length > 0 
-        ? entries.reduce((sum, entry) => sum + moodValues[entry.mood], 0) / entries.length 
-        : 0;
-      
-      const moodDistribution = entries.reduce((acc, entry) => {
-        acc[entry.mood] = (acc[entry.mood] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      // Calculate streak (simplified - in real app, this would be more sophisticated)
-      const streakDays = entries.length > 0 ? Math.min(entries.length, 7) : 0;
-      const lastEntryDate = entries.length > 0 ? entries[0].createdAt : undefined;
-
-      setStats({
-        totalEntries,
-        averageMood,
-        moodDistribution: moodDistribution as any,
-        streakDays,
-        lastEntryDate
-      });
-    } catch (error) {
-      console.error('Failed to load stats:', error);
-      // Set error state but don't crash the page
-      setError('Failed to load journal stats');
+  try {
+    // Get the current user ID from localStorage
+    const storedUserData = localStorage.getItem('userData');
+    if (!storedUserData) {
+      console.log('No user data found, skipping stats load');
+      return;
     }
-  };
+    
+    const userData = JSON.parse(storedUserData);
+    const entries = await journalService.getJournalEntries(userData.userId);
+    
+    // Sort entries by date (newest first)
+    const sortedEntries = [...entries].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    // Calculate streak
+    let streak = 0;
+    let lastDate: Date | null = null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (const entry of sortedEntries) {
+      const entryDate = new Date(entry.createdAt);
+      entryDate.setHours(0, 0, 0, 0);
+      
+      if (!lastDate) {
+        // First entry
+        lastDate = entryDate;
+        streak = 1;
+        continue;
+      }
+
+      const diffTime = lastDate.getTime() - entryDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        // Same day, skip
+        continue;
+      } else if (diffDays === 1) {
+        // Consecutive day
+        streak++;
+        lastDate = entryDate;
+      } else {
+        // Gap found, streak ends
+        break;
+      }
+    }
+
+    // Check if the most recent entry was today or yesterday
+    if (sortedEntries.length > 0) {
+      const lastEntryDate = new Date(sortedEntries[0].createdAt);
+      lastEntryDate.setHours(0, 0, 0, 0);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      if (lastEntryDate.getTime() < yesterday.getTime()) {
+        // Last entry was before yesterday, reset streak
+        streak = 0;
+      }
+    }
+
+    const totalEntries = entries.length;
+    const moodValues = { great: 5, good: 4, okay: 3, bad: 2, awful: 1 };
+    const averageMood = entries.length > 0 
+      ? entries.reduce((sum, entry) => sum + moodValues[entry.mood], 0) / entries.length 
+      : 0;
+    
+    const moodDistribution = entries.reduce((acc, entry) => {
+      acc[entry.mood] = (acc[entry.mood] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    setStats({
+      totalEntries,
+      averageMood,
+      moodDistribution: moodDistribution as any,
+      streakDays: streak,
+      lastEntryDate: sortedEntries[0]?.createdAt
+    });
+  } catch (error) {
+    console.error('Failed to load stats:', error);
+    setError('Failed to load journal stats');
+  }
+};
 
   React.useEffect(() => {
     loadStats();

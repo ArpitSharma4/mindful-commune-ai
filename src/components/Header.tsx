@@ -22,24 +22,33 @@ const Header = () => {
   // Check authentication status on component mount and listen for changes
   useEffect(() => {
     const checkAuthStatus = () => {
+      console.log('Header: Checking auth status...');
       const token = localStorage.getItem('authToken');
       const storedUserData = localStorage.getItem('userData');
+      console.log('Header: Token exists:', !!token);
+      console.log('Header: Stored user data:', storedUserData);
+      
       if (token && storedUserData) {
         try {
           const parsed = JSON.parse(storedUserData);
+          console.log('Header: Parsed user data:', parsed);
           setUserData(parsed);
           setIsLoggedIn(true);
-        } catch {
+          console.log('Header: Auth state updated - user is logged in');
+        } catch (error) {
+          console.error('Header: Error parsing user data:', error);
           setUserData(null);
           setIsLoggedIn(false);
         }
       } else {
+        console.log('Header: No auth data found - user is logged out');
         setUserData(null);
         setIsLoggedIn(false);
       }
     };
 
     // Initial check
+    console.log('Header: Component mounted, running initial auth check');
     checkAuthStatus();
 
     // Listen for storage changes to update auth state across tabs
@@ -67,7 +76,27 @@ const Header = () => {
   };
 
   const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
+    console.log('Header: handleLoginSuccess called');
+    
+    // Check localStorage and update state
+    const token = localStorage.getItem('authToken');
+    const storedUserData = localStorage.getItem('userData');
+    
+    console.log('Header: Token exists:', !!token);
+    console.log('Header: User data:', storedUserData);
+    
+    if (token && storedUserData) {
+      try {
+        const parsed = JSON.parse(storedUserData);
+        console.log('Header: Setting user data:', parsed);
+        setUserData(parsed);
+        setIsLoggedIn(true);
+        console.log('Header: isLoggedIn set to true');
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+    
     setIsLoginModalOpen(false);
     // Dispatch custom event to notify other components
     window.dispatchEvent(new Event('authStateChanged'));
