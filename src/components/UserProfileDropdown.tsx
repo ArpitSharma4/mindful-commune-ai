@@ -16,7 +16,8 @@ import {
   CalendarCheck,
   BookOpen,
   BookMarked,
-  Star
+  Star,
+  PenLine
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -314,6 +315,19 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
     }
   };
 
+  // Calculate level based on points
+  const getLevelData = (xp: number) => {
+    if (xp < 50) return { level: 1, title: 'Newbie' };
+    if (xp < 150) return { level: 2, title: 'Explorer' };
+    if (xp < 500) return { level: 3, title: 'Writer' };
+    if (xp < 1000) return { level: 4, title: 'Sage' };
+    if (xp < 2500) return { level: 5, title: 'Luminary' };
+    if (xp < 5000) return { level: 6, title: 'Oracle' };
+    return { level: Math.floor(xp / 1000) + 1, title: 'Elder' };
+  };
+  
+  const levelData = getLevelData(totalPoints);
+
   // Don't show dropdown if not open or user is not logged in
   if (!isOpen || !isLoggedIn || !userData) return null;
 
@@ -330,34 +344,48 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
         <div className="p-4 space-y-3">
           {/* User Info */}
           <div className="flex items-center gap-3 pb-3 border-b">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={userData.avatar_url} />
-              <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                {getInitials(userData.username)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="font-medium">
-                {userData.username}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {getUsernameDisplay(userData.username)}
-              </div>
+            <div 
+              className="flex items-center gap-3 flex-1 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/profile/${userData.username}`);
+                onClose();
+              }}
+            >
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={userData.avatar_url} />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                  {getInitials(userData.username)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="font-medium hover:underline">
+                  {userData.username}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {getUsernameDisplay(userData.username)}
+                </div>
               {isLoadingPoints ? (
                 <p className="text-xs text-muted-foreground pt-1">Loading stats...</p>
               ) : (
-                <div className="flex items-center pt-2 gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Zap className="h-4 w-4 text-yellow-500" />
-                    {totalPoints} points
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Flame className="h-4 w-4 text-red-500" />
-                    {currentStreak} day streak
-                  </span>
+                <div className="space-y-2 pt-2">
+                  <p className="text-sm font-semibold text-blue-400">
+                    Level {levelData.level}: {levelData.title}
+                  </p>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Zap className="h-4 w-4 text-yellow-500" />
+                      {totalPoints} points
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Flame className="h-4 w-4 text-red-500" />
+                      {currentStreak} day streak
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
+          </div>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -373,6 +401,18 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
 
           {/* Menu Items */}
           <div className="space-y-1">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-auto p-3"
+              onClick={() => {
+                onClose();
+                navigate('/journaling');
+              }}
+            >
+              <PenLine className="h-4 w-4" />
+              <span>New Entry</span>
+            </Button>
+
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-auto p-3"

@@ -11,36 +11,60 @@ const getUserStats = async (userId) => {
   const totalResult = await pool.query(totalQuery, [userId]);
   const totalEntries = parseInt(totalResult.rows[0].total_entries, 10);
 
-  // --- Query 4 & Calculation: Current Streak ---
+  // --- Query 2: Current Streak ---
+  // This new query is much more robust
   const streakQuery = `
-    SELECT DISTINCT DATE(created_at AT TIME ZONE 'UTC') AS entry_date 
-    FROM journal_entries 
-    WHERE author_id = $1 
-    ORDER BY entry_date DESC;
+    WITH distinct_days AS (
+      -- Get all unique days the user posted, in UTC
+      SELECT DISTINCT DATE_TRUNC('day', created_at AT TIME ZONE 'UTC') AS entry_day
+      FROM journal_entries
+      WHERE author_id = $1
+    ),
+    day_series AS (
+      -- Create a series of all days from the user's first post to today
+      SELECT generate_series(
+        (SELECT MIN(entry_day) FROM distinct_days),
+        (CURRENT_DATE AT TIME ZONE 'UTC'),
+        '1 day'::interval
+      ) AS day
+    ),
+    streaks AS (
+      -- Check if the user posted on each day in the series
+      SELECT
+        day,
+        (SELECT 1 FROM distinct_days WHERE entry_day = day_series.day) AS posted,
+        -- Create groups for consecutive days of posting/not-posting
+        (
+          ROW_NUMBER() OVER(ORDER BY day)
+          - ROW_NUMBER() OVER(PARTITION BY (SELECT 1 FROM distinct_days WHERE entry_day = day_series.day) ORDER BY day)
+        ) as streak_group
+      FROM day_series
+    )
+    -- Get the most recent streak
+    SELECT COUNT(*) AS current_streak
+    FROM streaks
+    WHERE streak_group = (SELECT streak_group FROM streaks ORDER BY day DESC LIMIT 1)
+    AND posted = 1;
   `;
+  
   const streakResult = await pool.query(streakQuery, [userId]);
-  const entryDates = streakResult.rows.map(row => new Date(row.entry_date));
-
   let currentStreak = 0;
-  if (entryDates.length > 0) {
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setUTCDate(today.getUTCDate() - 1);
 
-    if (entryDates[0].getTime() === today.getTime() || entryDates[0].getTime() === yesterday.getTime()) {
-      currentStreak = 1;
-      for (let i = 1; i < entryDates.length; i++) {
-        const expectedPreviousDate = new Date(entryDates[i-1]);
-        expectedPreviousDate.setUTCDate(expectedPreviousDate.getUTCDate() - 1);
-        if (entryDates[i].getTime() === expectedPreviousDate.getTime()) {
-          currentStreak++;
-        } else {
-          break;
-        }
-      }
-    }
+  // This checks if the user posted today OR yesterday, which is the minimum for a streak
+  const lastPostQuery = `
+    SELECT 1 FROM journal_entries
+    WHERE author_id = $1
+    AND (created_at AT TIME ZONE 'UTC')::date >= (CURRENT_DATE AT TIME ZONE 'UTC' - '1 day'::interval)
+    LIMIT 1;
+  `;
+  const lastPostResult = await pool.query(lastPostQuery, [userId]);
+
+  if (lastPostResult.rowCount > 0) {
+    // If they posted today/yesterday, use the streak value
+    currentStreak = parseInt(streakResult.rows[0]?.current_streak || '0', 10);
   }
+  // Otherwise, the streak is 0 (the default)
+
   return { totalEntries, currentStreak };
 };
 

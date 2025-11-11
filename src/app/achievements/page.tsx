@@ -119,33 +119,51 @@ export default function AchievementsPage() {
   const renderProgressBar = (achievement: Achievement) => {
     if (achievement.isEarned || !status) return null;
 
-    if (achievement.code.includes('STREAK')) {
-      const target = parseInt(achievement.code.split('_')[0]);
-      const progress = Math.min((status.currentStreak / target) * 100, 100);
-      return (
-        <div className="mt-2">
-          <Progress value={progress} className="h-2 bg-gray-700" />
-          <p className="text-xs text-gray-400 mt-1">
-            {status.currentStreak} of {target} days
-          </p>
-        </div>
-      );
+    let goal = 0;
+    let progress = 0;
+    let progressText = 'Complete challenges to unlock';
+
+    // Safe and reliable switch statement
+    switch (achievement.code) {
+      case '3_DAY_STREAK':
+        goal = 3;
+        progress = status.currentStreak;
+        progressText = `${progress} of ${goal} days`;
+        break;
+      case 'WEEKLY_STREAK':
+        goal = 7;
+        progress = status.currentStreak;
+        progressText = `${progress} of ${goal} days`;
+        break;
+      case 'MONTHLY_STREAK':
+        goal = 30;
+        progress = status.currentStreak;
+        progressText = `${progress} of ${goal} days`;
+        break;
+      case '10_ENTRIES':
+        goal = 10;
+        progress = status.totalEntries;
+        progressText = `${progress} of ${goal} entries`;
+        break;
+      case 'FIRST_ENTRY':
+        goal = 1;
+        progress = status.totalEntries >= goal ? 1 : 0;
+        progressText = progress ? 'Completed' : 'Write your first entry';
+        break;
+      // Add more cases for other achievements here
     }
 
-    if (achievement.code === '10_ENTRIES') {
-      const target = 10;
-      const progress = Math.min((status.totalEntries / target) * 100, 100);
-      return (
-        <div className="mt-2">
-          <Progress value={progress} className="h-2 bg-gray-700" />
-          <p className="text-xs text-gray-400 mt-1">
-            {status.totalEntries} of {target} entries
-          </p>
-        </div>
-      );
-    }
-
-    return null;
+    return (
+      <div className="mt-2">
+        <Progress 
+          value={goal > 0 ? (progress / goal) * 100 : 0} 
+          className="h-2 bg-gray-700" 
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          {progressText}
+        </p>
+      </div>
+    );
   };
 
   if (isLoading) {

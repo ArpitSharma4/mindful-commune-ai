@@ -63,36 +63,54 @@ const AchievementsModal: React.FC<AchievementsModalProps> = ({ isOpen, onClose }
     if (achievement.isEarned || !status) return null;
 
     const { code } = achievement;
-    
-    // Streak-based achievements
-    if (code.includes('STREAK')) {
-      const target = parseInt(code.split('_')[0]);
-      const progress = Math.min((status.currentStreak / target) * 100, 100);
-      return (
-        <div className="mt-2">
-          <Progress value={progress} className="h-2 bg-gray-700" />
-          <p className="text-xs text-gray-400 mt-1">
-            {status.currentStreak} of {target} days
-          </p>
-        </div>
-      );
-    }
-    
-    // Entry-based achievements
-    if (code === '10_ENTRIES') {
-      const target = 10;
-      const progress = Math.min((status.totalEntries / target) * 100, 100);
-      return (
-        <div className="mt-2">
-          <Progress value={progress} className="h-2 bg-gray-700" />
-          <p className="text-xs text-gray-400 mt-1">
-            {status.totalEntries} of {target} entries
-          </p>
-        </div>
-      );
+    let goal = 0;
+    let progress = 0;
+    let progressText = 'Complete challenges to unlock';
+
+    // --- THIS IS THE FIX ---
+    // These 'case' strings now EXACTLY match your database
+    switch (code) {
+      case '3_DAY_STREAK':
+        goal = 3;
+        progress = status.currentStreak;
+        progressText = `${progress} of ${goal} days`;
+        break;
+      case 'WEEKLY_STREAK':
+        goal = 7;
+        progress = status.currentStreak;
+        progressText = `${progress} of ${goal} days`;
+        break;
+      case 'MONTHLY_STREAK':
+        goal = 30;
+        progress = status.currentStreak;
+        progressText = `${progress} of ${goal} days`;
+        break;
+      case 'FIRST_ENTRY':
+        goal = 1;
+        progress = status.totalEntries >= goal ? 1 : 0;
+        progressText = progress >= goal ? 'Completed' : 'Write your first entry';
+        break;
+      case '10_ENTRIES':
+        goal = 10;
+        progress = status.totalEntries;
+        progressText = `${progress} of ${goal} entries`;
+        break;
+      // Add any other codes you have in your database here
+      default:
+        progressText = achievement.description || 'Complete to unlock';
     }
 
-    return null;
+    return (
+      <div className="mt-2">
+        <Progress 
+          value={goal > 0 ? (progress / goal) * 100 : 0} 
+          className="h-2 bg-gray-700" 
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          {progressText}
+        </p>
+      </div>
+    );
   };
 
   useEffect(() => {
