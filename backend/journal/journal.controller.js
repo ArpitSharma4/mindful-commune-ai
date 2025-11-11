@@ -184,8 +184,8 @@
           1.  **Always be supportive and non-judgmental.** Your tone should be warm and understanding.
           2.  **Do NOT give medical advice or act like a licensed therapist.** You are a companion, not a clinician.
           3.  **Do NOT, under any circumstances, ask the user any questions.** This includes open-ended questions (e.g., "Why did you feel that way?"). Your response must be a statement.
-          4.  **Your feedback must identify the primary emotion or theme** from the user's text and gently reflect it back. (e.g., 'It sounds like you felt a real sense of accomplishment today.' or 'You're navigating a lot of pressure right now, and it's understandable to feel overwhelmed.')
-          5.  **Keep your feedback concise (2-4 sentences).** 
+          4.  **Your feedback must identify the primary emotion or theme** from the user's text and gently reflect it back and give suggestions on what they could have done if applicable.
+          5.  **Keep your feedback concise.** 
           6.  **If the text seems potentially related to self-harm or crisis, ONLY respond with the exact text: CRISIS_DETECTED**`;
 
       // 3. Prepare the payload for the Gemini API
@@ -212,7 +212,7 @@
           temperature: 0.7, // Controls randomness (0 = deterministic, 1 = max random)
           topK: 1,
           topP: 1,
-          maxOutputTokens: 512, // Limit the length of the AI's response
+          // maxOutputTokens: 512, // Limit the length of the AI's response
         },
       };
 
@@ -307,8 +307,7 @@
         SET ai_feedback = $1, ai_sentiment = $2 
         WHERE entry_id = $3 AND author_id = $4;
       `;
-
-  
+      await pool.query(updateQuery, [aiResponseText, sentiment, entryId, userId]);
 
       // 7. Send the AI's feedback back to the user
       res.status(200).json({ feedback: aiResponseText });
@@ -542,14 +541,6 @@
       res.status(500).json({ error: 'Internal Server Error' });
     }
   };
-
-
-
-
-  // Now, add the new function to your module.exports at the very bottom
-  // of the file.
-
-
 
   module.exports = {
     createJournalEntry,
