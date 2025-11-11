@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from 'react-router-dom';
 import LoginModal from "./LoginModal";
 import AvatarEditModal from "./AvatarEditModal";
 import {
@@ -35,7 +35,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useGamification } from "@/contexts/GamificationContext";
-import { useNavigate } from 'react-router-dom';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import UserProfileModal from "./UserProfileModal";
 interface UserProfileDropdownProps {
   isOpen: boolean;
@@ -344,22 +349,24 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
         <div className="p-4 space-y-3">
           {/* User Info */}
           <div className="flex items-center gap-3 pb-3 border-b">
-            <div 
-              className="flex items-center gap-3 flex-1 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/profile/${userData.username}`);
-                onClose();
-              }}
-            >
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={userData.avatar_url} />
-                <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                  {getInitials(userData.username)}
-                </AvatarFallback>
-              </Avatar>
+            <div className="flex items-center gap-3 flex-1">
+              <div 
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/profile/${userData.username}`);
+                  onClose();
+                }}
+              >
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={userData.avatar_url} />
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                    {getInitials(userData.username)}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
               <div className="flex-1">
-                <div className="font-medium hover:underline">
+                <div className="font-medium">
                   {userData.username}
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -386,17 +393,25 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
               )}
             </div>
           </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowProfileModal(true);
-                onClose();
-              }}
-            >
-              <User className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to={`/profile/${userData.username}`}
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-full hover:bg-accent transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                    }}
+                  >
+                    <User className="h-4 w-4" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>View Profile</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           {/* Menu Items */}

@@ -1,10 +1,11 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, TrendingUp, AlignJustify, Compass, Globe, BookOpen } from "lucide-react";
 type LeftSidebarProps = {
   onClose?: () => void;
 };
 const LeftSidebar = ({ onClose }: LeftSidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   return (
     <aside className="hidden md:flex flex-col w-56 pt-0 pr-4 border-r">
       <button onClick={onClose} className="self-start mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
@@ -49,6 +50,27 @@ const LeftSidebar = ({ onClose }: LeftSidebarProps) => {
           Journal
         </Link>
       </nav>
+
+      {/* Make whole card a real link so clicking anywhere opens profile */}
+      <Link to="/profile" className="mt-4 rounded-md hover:bg-muted p-3 inline-flex items-center gap-3">
+        <div className="profile-info flex-1">
+          {/* avatar, username, level, etc. */}
+        </div>
+
+        {/* If you have a dropdown/toggle icon here, prevent it from causing the Link navigation */}
+        {/* Example dropdown toggle — ensure it stops propagation so it doesn't trigger the parent Link */}
+        <button
+          type="button"
+          className="ml-2 p-1 rounded"
+          onClick={(e) => {
+            e.stopPropagation(); // IMPORTANT: prevent Link navigation when clicking the dropdown
+            // open dropdown logic here (e.g., setDropdownOpen(true))
+          }}
+          aria-label="Profile options"
+        >
+          {/* small icon (existing dropdown icon component) */}
+        </button>
+      </Link>
     </aside>
   );
 };

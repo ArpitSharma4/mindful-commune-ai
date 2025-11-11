@@ -343,6 +343,54 @@ const changePassword = async (req, res) => {
   }
 };
 
+/**
+ * Fetches a user's public profile data by their username. (Public)
+ */
+const getUserProfile = async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    // This query is clean and uses the case-insensitive fix
+    const query = `
+      SELECT 
+        user_id, 
+        username, 
+        avatar_url, 
+        created_at, 
+        total_points,
+        bio
+      FROM users 
+      WHERE LOWER(TRIM(username)) = LOWER(TRIM($1));
+    `;
+    
+    const result = await pool.query(query, [username]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Fetch the user's post count
+    const postCountQuery = 'SELECT COUNT(*) FROM posts WHERE author_id = $1';
+    const postCountResult = await pool.query(postCountQuery, [result.rows[0].user_id]);
+
+    // Fetch the user's community count
+    const communityCountQuery = 'SELECT COUNT(*) FROM community_members WHERE user_id = $1';
+    const communityCountResult = await pool.query(communityCountQuery, [result.rows[0].user_id]);
+
+    const profileData = {
+      ...result.rows[0],
+      postCount: parseInt(postCountResult.rows[0].count, 10),
+      communityCount: parseInt(communityCountResult.rows[0].count, 10)
+    };
+
+    res.status(200).json(profileData);
+
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 // Remember to export both functions so the router can use them.
 module.exports = {
   createUser,
@@ -351,5 +399,6 @@ module.exports = {
   deleteUser,
   changePassword,
   updateAvatar,
-  removeAvatar
+  removeAvatar,
+  getUserProfile
 };

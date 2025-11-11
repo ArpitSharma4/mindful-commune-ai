@@ -14,6 +14,7 @@ import Journaling from "./pages/Journaling";
 import Settings from "./components/Settings";
 import Achievements from "./pages/Achievements";
 import NotFound from "./pages/NotFound";
+import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,8 @@ const App = () => (
           <Route path="/journaling" element={<Journaling />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/achievements" element={<Achievements />} />
+          {/* Profile route */}
+          <Route path="/profile/:username" element={<ProfilePage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

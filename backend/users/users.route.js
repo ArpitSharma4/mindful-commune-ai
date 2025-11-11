@@ -1,7 +1,16 @@
 const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
-const { createUser, loginUser, getCurrentUser, deleteUser, changePassword, updateAvatar, removeAvatar } = require('./users.controller');
+const { 
+  createUser, 
+  loginUser, 
+  getCurrentUser, 
+  deleteUser, 
+  changePassword, 
+  updateAvatar, 
+  removeAvatar,
+  getUserProfile 
+} = require('./users.controller');
 const authenticateToken = require('../middleware/auth');
 
 const router = Router();
@@ -32,8 +41,12 @@ const upload = multer({
   }
 });
 
+// Public routes
 router.post('/signup', createUser);
 router.post('/login', loginUser);
+router.get('/profile/:username', getUserProfile); // Public profile endpoint
+
+// Protected routes (require authentication)
 router.get('/me', authenticateToken, getCurrentUser);
 router.delete('/me', authenticateToken, deleteUser); // Delete account route
 router.put('/change-password', authenticateToken, changePassword);

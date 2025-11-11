@@ -1,12 +1,10 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Zap, Flame, PenLine, Trophy, Users, Calendar } from 'lucide-react';
+import { Zap, PenLine, Trophy, Users, Calendar } from 'lucide-react';
 import { useGamification } from '@/contexts/GamificationContext';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -21,21 +19,13 @@ interface UserProfile {
   communityCount: number;
 }
 
-interface UserPost {
-  id: string;
-  title: string;
-  content: string;
-  created_at: string;
-}
-
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
   const { toast } = useToast();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [posts, setPosts] = useState<UserPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { totalPoints, currentStreak, isLoading: isLoadingPoints } = useGamification();
+  const { totalPoints } = useGamification();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -219,10 +209,7 @@ export default function ProfilePage() {
             <TabsContent value="stats" className="mt-4">
               <div className="space-y-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Activity</CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     <div className="space-y-4">
                       <div>
                         <p className="text-sm font-medium">Member Since</p>
