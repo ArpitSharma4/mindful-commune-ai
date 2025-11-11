@@ -15,6 +15,7 @@ import Settings from "./components/Settings";
 import Achievements from "./pages/Achievements";
 import NotFound from "./pages/NotFound";
 import ProfilePage from "./pages/ProfilePage";
+import ChatbotPage from "./pages/ChatbotPage";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/achievements" element={<Achievements />} />
           {/* Profile route */}
           <Route path="/profile/:username" element={<ProfilePage />} />
+          <Route path="/chat" element={<ChatbotPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, TrendingUp, AlignJustify, Compass, Globe, BookOpen } from "lucide-react";
+import { Home, Users, TrendingUp, AlignJustify, Compass, Globe, BookOpen, MessageCircle } from "lucide-react";
 type LeftSidebarProps = {
   onClose?: () => void;
 };
@@ -48,6 +48,15 @@ const LeftSidebar = ({ onClose }: LeftSidebarProps) => {
         >
           <BookOpen className="h-4 w-4" />
           Journal
+        </Link>
+        <Link
+          to="/chat"
+          className={`inline-flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            location.pathname === "/chat" ? "bg-primary/10 text-primary" : "hover:bg-muted"
+          }`}
+        >
+          <MessageCircle className="h-4 w-4" />
+          AI Chat
         </Link>
       </nav>
 

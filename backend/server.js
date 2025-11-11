@@ -26,6 +26,7 @@ const supportRoutes = require('./support/support.route'); // This was in your fi
 // Note: OAuth routes will be defined inline below for easier setup
 
 
+
 // --- Application Initialization ---
 // Create an instance of the Express application. This 'app' object will be used to configure the server.
 const app = express();

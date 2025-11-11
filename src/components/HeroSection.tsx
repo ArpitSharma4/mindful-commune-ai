@@ -31,7 +31,7 @@ const HeroSection = () => {
       title: "AI Chatbot ",
       description: "Starting conversation with your AI companion...",
     });
-    // TODO: Navigate to chatbot page when implemented
+    navigate('/chat');
   };
 
   const handleJoinCommunity = () => {

@@ -192,8 +192,8 @@ const handleChat = async (req, res) => {
     const updateHistoryQuery = `UPDATE users SET chat_history = $1 WHERE user_id = $2;`;
     await pool.query(updateHistoryQuery, [JSON.stringify(newHistory), userId]);
 
-    // 9. Send only the new reply back to the user
-    res.status(200).json({ reply: aiResponseText });
+    // 9. Send the new reply back in the format the frontend expects
+    res.status(200).json({ role: 'assistant', content: aiResponseText });
 
   } catch (error) {
     console.error('Error in handleChat:', error);
