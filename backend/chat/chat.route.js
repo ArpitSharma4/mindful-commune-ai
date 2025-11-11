@@ -1,15 +1,32 @@
 const { Router } = require('express');
 const authMiddleware = require('../middleware/auth');
-const { handleChat, getChatHistory } = require('./chat.controller');
+const {
+  getAllConversations,
+  createNewChat,
+  getConversationMessages,
+  handleChat,
+  deleteConversation // <-- ADD THIS
+} = require('./chat.controller'); // Make sure this filename is correct
 
 const router = Router();
 
-// --- All Chat Routes are Protected ---
+// GET /api/chat
+// Fetches all conversation titles for the sidebar
+router.get('/', authMiddleware, getAllConversations);
 
-// GET /api/chat -> Get the user's entire chat history
-router.get('/history', authMiddleware, getChatHistory);
+// POST /api/chat
+// Creates a new, blank chat and returns its ID
+router.post('/', authMiddleware, createNewChat);
 
-// POST /api/chat -> Send a new message to the AI
-router.post('/handle', authMiddleware, handleChat);
+// GET /api/chat/:id
+// Fetches all messages for a specific conversation
+router.get('/:id', authMiddleware, getConversationMessages);
+
+// POST /api/chat/:id
+// Sends a new message to a specific conversation
+router.post('/:id', authMiddleware, handleChat); // <-- THIS IS THE MISSING ROUTE
+
+router.delete('/:id', authMiddleware, deleteConversation);
+
 
 module.exports = router;
