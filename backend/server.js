@@ -41,7 +41,7 @@ app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080'], // Whitelist of frontend origins.
   credentials: true, // Allows cookies and authorization headers to be sent from the frontend.
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods.
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma'] // Allowed request headers.
+  allowedHeaders: ['Content-Type', 'Authorization'] // Allowed request headers.
 }));
 
 // Configure JSON Body Parser
@@ -135,59 +135,6 @@ passport.use(
   )
 );
 
-// Apple OAuth Strategy
-passport.use(
-  new AppleStrategy(
-    {
-      clientID: process.env.APPLE_CLIENT_ID,
-      teamID: process.env.APPLE_TEAM_ID,
-      keyID: process.env.APPLE_KEY_ID,
-      privateKeyString: process.env.APPLE_PRIVATE_KEY,
-      callbackURL: process.env.APPLE_CALLBACK_URL || 'http://localhost:3000/api/auth/apple/callback',
-      scope: ['name', 'email'],
-    },
-    async (accessToken, refreshToken, idToken, profile, done) => {
-      try {
-        console.log('Apple OAuth profile:', profile.id);
-        const appleId = profile.id;
-        const email = profile.email;
-        const username = profile.name ? `${profile.name.firstName || ''} ${profile.name.lastName || ''}`.trim() : `user_${appleId}`;
-
-        if (!email) return done(new Error('No email provided by Apple'), null);
-
-        // Check if user exists with Apple ID
-        let userResult = await pool.query('SELECT * FROM users WHERE apple_id = $1', [appleId]);
-        let user;
-
-        if (userResult.rows.length > 0) {
-          user = userResult.rows[0];
-        } else {
-          // Check if user exists with email
-          userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-          if (userResult.rows.length > 0) {
-            // Link Apple account to existing user
-            const updateResult = await pool.query(
-              'UPDATE users SET apple_id = $1 WHERE email = $2 RETURNING *',
-              [appleId, email]
-            );
-            user = updateResult.rows[0];
-          } else {
-            // Create new user
-            const insertResult = await pool.query(
-              'INSERT INTO users (username, email, apple_id, password_hash) VALUES ($1, $2, $3, $4) RETURNING *',
-              [username, email, appleId, 'oauth_user']
-            );
-            user = insertResult.rows[0];
-          }
-        }
-        return done(null, user);
-      } catch (error) {
-        console.error('Error in Apple OAuth:', error);
-        return done(error, null);
-      }
-    }
-  )
-);
 
 // --- Static File Serving ---
 // This section makes files in a specific directory on the server accessible via a URL.
@@ -278,76 +225,6 @@ app.get('/api/auth/google/callback',
   }
 );
 
-// Apple OAuth routes
-app.get('/api/auth/apple',
-  passport.authenticate('apple', { session: false })
-);
-
-app.post('/api/auth/apple/callback',
-  passport.authenticate('apple', { session: false, failureRedirect: '/login' }),
-  (req, res) => {
-    try {
-      const user = req.user;
-      const token = jwt.sign(
-        { userId: user.user_id, username: user.username },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-      
-      const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>Login Successful</title></head>
-          <body>
-            <script>
-              if (window.opener) {
-                window.opener.postMessage({
-                  type: 'oauth-success',
-                  token: '${token}',
-                  user: {
-                    user_id: '${user.user_id}',
-                    username: '${user.username}',
-                  avatar_url: '${user.avatar_url || ''}'
-                }
-              }, '${frontendOrigin}');
-              setTimeout(() => window.close(), 1000);
-              } else {
-                console.error('OAuth callback: No window.opener found');
-              }
-            </script>
-            <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-              <h2>✓ Login Successful!</h2>
-              <p>You can close this window now.</p>
-            </div>
-          </body>
-        </html>
-      `);
-    } catch (error) {
-      console.error('Error in Apple callback:', error);
-      const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>Login Failed</title></head>
-          <body>
-            <script>
-              if (window.opener) {
-                window.opener.postMessage({ type: 'oauth-error', error: 'Authentication failed' }, '${frontendOrigin}');
-              }
-              setTimeout(() => window.close(), 2000);
-            </script>
-            <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-              <h2>✗ Login Failed</h2>
-              <p>Please try again.</p>
-            </div>
-          </body>
-        </html>
-      `);
-    }
-  }
-);
-
 // --- Main API Routes ---
 // This is where the application's API endpoints are defined.
 // The server delegates requests to the appropriate router based on the URL prefix.
@@ -355,7 +232,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/communities', communityRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/journal', journalRoutes);
-app.use('/api/gamification', gamificationRoutes); // Add gamification routes
+app.use('/api/gamification', gamificationRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/chat', chatRoutes);
 

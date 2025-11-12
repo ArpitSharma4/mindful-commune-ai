@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, Mail, Lock, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 // Social login icons (using SVG for better compatibility)
 const GoogleIcon = () => (
@@ -15,12 +16,6 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const AppleIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-  </svg>
-);
-
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,6 +23,7 @@ interface LoginModalProps {
 }
 
 const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [currentView, setCurrentView] = useState<'login' | 'signup' | 'forgot'>('login');
@@ -129,32 +125,32 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
     }
   };
 
-  /**
-   * Handle Google OAuth login
-   * Opens OAuth flow in a popup window and listens for the callback
-   */
+  // Handle Google OAuth login with popup
   const handleGoogleLogin = () => {
-    // Open Google OAuth in a popup window
+    const url = 'http://localhost:3000/api/auth/google';
     const width = 500;
     const height = 600;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    
-    const popup = window.open(
-      '/api/auth/google',
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    window.open(
+      url,
       'Google Login',
       `width=${width},height=${height},left=${left},top=${top}`
     );
+  };
 
-    // Listen for OAuth callback message
+  // Handle OAuth success/failure messages from the popup
+  useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      
-      if (event.data.type === 'oauth-success') {
-        const { token, user } = event.data;
-        
-        console.log('OAuth Success - Received data:', { token: token.substring(0, 20) + '...', user });
-        
+      // Only accept messages from our backend
+      if (event.origin !== 'http://localhost:3000') {
+        return;
+      }
+
+      const { type, token, user } = event.data;
+
+      if (type === 'oauth-success') {
         // Store authentication data
         localStorage.setItem('authToken', token);
         localStorage.setItem('userData', JSON.stringify({
@@ -162,116 +158,33 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
           username: user.username,
           avatar_url: user.avatar_url
         }));
+
+        // Close the modal and trigger success callback
+        onClose();
+        onLoginSuccess();
         
-        console.log('OAuth Success - Data stored in localStorage');
-        
-        // Verify data was stored
-        const verifyToken = localStorage.getItem('authToken');
-        const verifyUserData = localStorage.getItem('userData');
-        console.log('OAuth Success - Verification - Token stored:', !!verifyToken);
-        console.log('OAuth Success - Verification - UserData stored:', verifyUserData);
-        
-        // Close the popup
-        popup?.close();
-        
-        // Use setTimeout to ensure state updates happen after current render cycle
-        setTimeout(() => {
-          // Close the modal and trigger success callback
-          console.log('OAuth Success - Closing modal and calling onLoginSuccess');
-          onClose();
-          
-          // Show success toast
-          toast({
-            title: "Welcome! 🎉",
-            description: `Logged in successfully with Google`,
-            duration: 3000,
-          });
-          
-          // Reload the page to ensure all components update with new auth state
-          console.log('OAuth Success - Reloading page');
-          window.location.reload();
-        }, 500);
-        
-        window.removeEventListener('message', handleMessage);
-      } else if (event.data.type === 'oauth-error') {
+        // Show success toast
+        toast({
+          title: "Welcome! 🎉",
+          description: "Successfully logged in with Google",
+          duration: 3000,
+        });
+
+        // Redirect to global feed or home page
+        navigate('/global-feed');
+      } else if (type === 'oauth-error') {
         toast({
           title: "Login Failed",
-          description: event.data.error || "Google login failed",
+          description: event.data.error || "Google login failed. Please try again.",
           variant: "destructive"
         });
-        popup?.close();
-        window.removeEventListener('message', handleMessage);
       }
     };
 
     window.addEventListener('message', handleMessage);
-  };
+    return () => window.removeEventListener('message', handleMessage);
+  }, [navigate, onClose, onLoginSuccess]);
 
-  /**
-   * Handle Apple OAuth login
-   * Opens OAuth flow in a popup window and listens for the callback
-   */
-  const handleAppleLogin = () => {
-    // Open Apple OAuth in a popup window
-    const width = 500;
-    const height = 600;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    
-    const popup = window.open(
-      '/api/auth/apple',
-      'Apple Login',
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
-
-    // Listen for OAuth callback message
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      
-      if (event.data.type === 'oauth-success') {
-        const { token, user } = event.data;
-        
-        // Store authentication data
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('userData', JSON.stringify({
-          userId: user.user_id,
-          username: user.username,
-          avatar_url: user.avatar_url
-        }));
-        
-        // Close the popup
-        popup?.close();
-        
-        // Use setTimeout to ensure state updates happen after current render cycle
-        setTimeout(() => {
-          // Close the modal and trigger success callback
-          onClose();
-          
-          // Show success toast
-          toast({
-            title: "Welcome! 🎉",
-            description: `Logged in successfully with Apple`,
-            duration: 3000,
-          });
-          
-          // Reload the page to ensure all components update with new auth state
-          window.location.reload();
-        }, 500);
-        
-        window.removeEventListener('message', handleMessage);
-      } else if (event.data.type === 'oauth-error') {
-        toast({
-          title: "Login Failed",
-          description: event.data.error || "Apple login failed",
-          variant: "destructive"
-        });
-        popup?.close();
-        window.removeEventListener('message', handleMessage);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -444,16 +357,6 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
           <span className="font-medium">Continue with Google</span>
         </Button>
 
-        {/* Apple Login Button */}
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full flex items-center justify-center gap-3 h-11 border-2 hover:bg-accent/50 transition-colors"
-          onClick={handleAppleLogin}
-        >
-          <AppleIcon />
-          <span className="font-medium">Continue with Apple</span>
-        </Button>
       </div>
 
       <div className="text-center text-sm text-muted-foreground mt-4">
