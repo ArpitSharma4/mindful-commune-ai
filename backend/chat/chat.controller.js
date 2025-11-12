@@ -20,7 +20,7 @@ const semanticSearchJournals = async (userId, userMessage) => {
 
     // 2. Define our relevance threshold. We tune this to get good matches.
     // 0.70 is a good balance, less strict than 0.75.
-    const SIMILARITY_THRESHOLD = 0.70; 
+    const SIMILARITY_THRESHOLD = 0.50; 
 
     // 3. Query Pinecone for the top 3 most similar vectors
     const queryResponse = await pineconeIndex.query({
@@ -73,7 +73,7 @@ const generateAndSaveTitle = async (conversationId, userMessage, botMessage) => 
     console.log(`[Title Gen] Starting for conversation ${conversationId}`);
     
     const titleGenPrompt = `
-      Summarize the following conversation in 3-5 words. 
+      Summarize the following conversation in 2 words. 
       Do NOT use quotes.
       User: "${userMessage}"
       Assistant: "${botMessage}"
@@ -202,10 +202,36 @@ const createNewChat = async (req, res) => {
     const newConversation = result.rows[0];
     const conversationId = newConversation.id;
 
-    // 2. Format user message in Gemini's format
-    const userMessageGemini = { role: 'user', parts: [{ text: message }] };
+    // 2. Start building the Gemini history.
+    const geminiHistory = [];
+
+    // 3. --- RAG LOGIC ---
+    // We now perform a RAG search on the *very first message*.
+    console.log(`[RAG] Performing semantic search for new chat...`);
+    const relevantEntries = await semanticSearchJournals(userId, message);
     
-    // 3. Define System Prompt
+    if (isMemoryQuestion) {
+      console.log(`[RAG] Detected memory question in NEW chat. Performing semantic search...`);
+      relevantEntries = await semanticSearchJournals(userId, message);
+    }
+
+    // 5. --- AUGMENTATION ---
+    if (relevantEntries.length > 0) {
+      let augmentedContext = "Before you respond to the user's last message, here is some relevant context from their private journal entries:\n\n";
+      relevantEntries.forEach(entry => {
+        augmentedContext += `On ${new Date(entry.created_at).toLocaleDateString()}:\n"${entry.content.substring(0, 150)}..."\n\n`;
+      });
+      augmentedContext += "Now, please answer the user's last message *using this context*. If you use this context, briefly mention that you found it in their journal but dont mention date until asked for.";
+      
+      geminiHistory.push({ role: 'model', parts: [{ text: augmentedContext }] });
+    }
+    // --- [END OF RAG LOGIC] ---
+
+    // 6. Add the new user message (in Gemini format)
+    const userMessageGemini = { role: 'user', parts: [{ text: message }] };
+    geminiHistory.push(userMessageGemini);
+    
+    // 7. Define System Prompt
     const systemPrompt = `You are 'Mindwell,' a supportive and empathetic AI companion. Your goal is to hold a natural, supportive, and helpful conversation.
 
 YOUR RULES:
@@ -215,12 +241,12 @@ YOUR RULES:
 4.  **Do NOT give medical advice or act like a licensed therapist.** You are a companion, not a clinician.
 5.  If the user's text seems potentially related to self-harm or crisis, ONLY respond with the exact text: CRISIS_DETECTED`;
     
-    // 4. Prepare payload for Gemini (only the system prompt + first user message)
+    // 8. Prepare payload for Gemini
     const apiKey = process.env.GEMINI_API_KEY || "";
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
     const payload = {
       systemInstruction: { parts: [{ text: systemPrompt }] },
-      contents: [userMessageGemini], 
+      contents: geminiHistory, // Send the (potentially augmented) history
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
@@ -230,12 +256,11 @@ YOUR RULES:
       generationConfig: { maxOutputTokens: 512, temperature: 0.7 },
     };
     
-    // 5. Call Gemini API (with retry logic)
+    // 9. --- [FIXED] Call Gemini API (with full retry logic) ---
     let aiResponseText = '';
     let attempt = 0;
     const maxAttempts = 5;
     let delay = 1000;
-
     while (attempt < maxAttempts) {
       try {
         const response = await fetch(apiUrl, {
@@ -275,26 +300,25 @@ YOUR RULES:
       }
     }
     
-    // 6. Safety/Crisis Check
+    // 10. Safety/Crisis Check
     if (aiResponseText.trim() === 'CRISIS_DETECTED') {
       aiResponseText = "It sounds like you're going through a very difficult time. Please reach out for support. You can contact the National Suicide Prevention Lifeline at 988. You are not alone.";
     }
 
-    // 7. Save both messages to the database
+    // 11. Save both messages to the database
     const aiMessageGemini = { role: 'model', parts: [{ text: aiResponseText }] };
     const saveMsgQuery = 'INSERT INTO chat_messages (conversation_id, role, content) VALUES ($1, $2, $3)';
     
-    // We MUST stringify the array to store it in a TEXT or JSONB column
     await client.query(saveMsgQuery, [conversationId, userMessageGemini.role, JSON.stringify(userMessageGemini.parts)]);
     await client.query(saveMsgQuery, [conversationId, aiMessageGemini.role, JSON.stringify(aiMessageGemini.parts)]);
 
-    // 8. Commit transaction
+    // 12. Commit transaction
     await client.query('COMMIT');
     
-    // 9. Send back the *new conversation* so the frontend can redirect
+    // 13. Send back the *new conversation* so the frontend can redirect
     res.status(201).json(newConversation);
 
-    // 10. Generate a title in the background (fire and forget)
+    // 14. Generate a title in the background (fire and forget)
     generateAndSaveTitle(conversationId, message, aiResponseText).catch(err => {
       console.error('Background title generation failed:', err);
     });
@@ -349,15 +373,9 @@ const handleChat = async (req, res) => {
     }));
 
     // 3. --- RAG LOGIC: Detect if this is a memory question ---
-    let relevantEntries = [];
-    const memoryKeywords = ['remember', 'in my journal', 'have i ever', 'tell me about', 'my past', 'what did i say about', 'anxious', 'worried', 'stressed'];
-    const isMemoryQuestion = memoryKeywords.some(kw => message.toLowerCase().includes(kw));
-
-    if (isMemoryQuestion) {
-      console.log(`[RAG] Detected memory question. Performing semantic search...`);
-      // 4. --- RETRIEVAL ---
-      relevantEntries = await semanticSearchJournals(userId, message);
-    }
+  // We *always* run the search now. No more keywords.
+    console.log(`[RAG] Performing semantic search...`);
+    const relevantEntries = await semanticSearchJournals(userId, message);
 
     // 5. --- AUGMENTATION ---
     if (relevantEntries.length > 0) {
@@ -365,7 +383,7 @@ const handleChat = async (req, res) => {
       relevantEntries.forEach(entry => {
         augmentedContext += `On ${new Date(entry.created_at).toLocaleDateString()}:\n"${entry.content.substring(0, 150)}..."\n\n`;
       });
-      augmentedContext += "Now, please answer the user's last message *using this context*. If you use this context, briefly mention that you found it in their journal (e.g., 'I found an entry from...').";
+      augmentedContext += "Now, please answer the user's last message *using this context*. If you use this context, briefly mention that you found it in their journal only mention date when asked for.";
       
       geminiHistory.push({ role: 'model', parts: [{ text: augmentedContext }] });
     }
@@ -407,7 +425,7 @@ YOUR RULES:
         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" }
       ],
       generationConfig: { 
-        maxOutputTokens: 512, 
+        // maxOutputTokens: 1024, 
         temperature: 0.7 
       },
     };
