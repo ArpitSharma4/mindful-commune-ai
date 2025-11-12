@@ -1,38 +1,82 @@
   const pool = require('../db');
   const { Parser } = require('json2csv');
   const { checkAndAwardAchievements } = require('../gamification/gamification.controller');
+  const { generateEmbedding } = require('../utils/aiHelpers'); 
+  const { pineconeIndex } = require('../utils/pineconeClient')
   /**
    * Creates a new, private journal entry for the logged-in user. (Protected)
    */
   const createJournalEntry = async (req, res) => {
-    try {
-      const { title, content, mood } = req.body;
-      const userId = req.user.userId;
+  const client = await pool.connect(); // Use a client for transactions
+  try {
+    const { title, content, mood } = req.body;
+    const userId = req.user.userId;
 
-      console.log('Creating journal entry for user:', userId);
-      console.log('Entry data:', { title, content, mood });
+    console.log('Creating journal entry for user:', userId);
+    console.log('Entry data:', { title, content, mood });
 
-      if (!content) {
-        return res.status(400).json({ error: 'Content is required for a journal entry.' });
-      }
-
-      const query = `
-        INSERT INTO journal_entries (author_id, title, content, mood)
-        VALUES ($1, $2, $3, $4)
-        RETURNING entry_id, title, content, mood, created_at, 
-                  COALESCE(updated_at, created_at) as updated_at;
-      `;
-      const result = await pool.query(query, [userId, title, content, mood]);
-      console.log('Journal entry created successfully:', result.rows[0]);
-
-      checkAndAwardAchievements(userId).catch(err => console.error('Error checking achievements:', err));
-
-      res.status(201).json(result.rows[0]);
-    } catch (error) {
-      console.error('Error creating journal entry:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required for a journal entry.' });
     }
-  };
+
+    await client.query('BEGIN');
+
+    // 1. Insert the text content into Postgres
+    const query = `
+      INSERT INTO journal_entries (author_id, title, content, mood)
+      VALUES ($1, $2, $3, $4)
+      RETURNING entry_id, title, content, mood, created_at, 
+                COALESCE(updated_at, created_at) as updated_at;
+    `;
+    const result = await client.query(query, [userId, title, content, mood]);
+    const newEntry = result.rows[0];
+    const newEntryId = newEntry.entry_id;
+
+    console.log('Journal entry created successfully:', newEntry);
+
+    // 2. Call your custom achievement logic
+    // We await this to ensure it's part of the transaction
+    await checkAndAwardAchievements(userId, client).catch(err => console.error('Error checking achievements:', err));
+    // Note: I've passed the 'client' to this function. 
+    // If it makes its own DB calls, it should use this client to be part of the transaction.
+    // If it's not DB-related, you can remove the 'await'.
+
+    await client.query('COMMIT');
+
+    // 3. Respond to the user immediately for a fast UI
+    res.status(201).json(newEntry);
+
+    // 4. (In Background) Generate and save embedding to Pinecone
+    // This runs as a "fire-and-forget" task.
+    (async () => {
+      try {
+        console.log(`[Pinecone Write] Generating embedding for new entry: ${newEntryId}`);
+        const embedding = await generateEmbedding(newEntry.content);
+        
+        await pineconeIndex.upsert([
+          {
+            id: newEntryId, // The Postgres entry_id
+            values: embedding, // The 768-dimension vector
+            metadata: {
+              userId: userId // Store the userId for filtering
+            }
+          }
+        ]);
+        console.log(`[Pinecone Write] Successfully saved embedding for: ${newEntryId}`);
+      } catch (err) {
+        // This log is important, as the user will not see this error
+        console.error(`[Pinecone Write Error] Failed to save embedding for ${newEntryId}:`, err);
+      }
+    })(); 
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error creating journal entry:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } finally {
+    client.release();
+  }
+};
 
   /**
    * Fetches a list of all journal entries for the logged-in user. (Protected)
@@ -93,55 +137,95 @@
    * Updates a specific journal entry. (Protected & Authorized)
    */
   const updateJournalEntry = async (req, res) => {
-    try {
-      const { entryId } = req.params;
-      const userId = req.user.userId;
-      const { title, content, mood } = req.body;
+  try {
+    const { entryId } = req.params;
+    const userId = req.user.userId;
+    const { title, content, mood } = req.body;
 
-      const updateQuery = `
-        UPDATE journal_entries
-        SET 
-          title = COALESCE($1, title), 
-          content = COALESCE($2, content),
-          mood = COALESCE($3, mood),
-          updated_at = NOW()
-        WHERE entry_id = $4 AND author_id = $5
-        RETURNING *;
-      `;
-      const result = await pool.query(updateQuery, [title, content, mood, entryId, userId]);
+    // 1. Update the entry in Postgres
+    const updateQuery = `
+      UPDATE journal_entries
+      SET 
+        title = COALESCE($1, title), 
+        content = COALESCE($2, content),
+        mood = COALESCE($3, mood),
+        updated_at = NOW() -- Assuming you have an updated_at column
+      WHERE entry_id = $4 AND author_id = $5
+      RETURNING *;
+    `;
+    const result = await pool.query(updateQuery, [title, content, mood, entryId, userId]);
 
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Journal entry not found or you are not the author.' });
-      }
-
-      res.status(200).json(result.rows[0]);
-    } catch (error) {
-      console.error('Error updating journal entry:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Journal entry not found or you are not the author.' });
     }
-  };
+    const updatedEntry = result.rows[0];
+
+    // 2. Respond to the user immediately
+    res.status(200).json(updatedEntry);
+
+    // 3. (In Background) If the content changed, regenerate and update the embedding
+    if (content) {
+      (async () => {
+        try {
+          console.log(`[Pinecone Write] Re-generating embedding for updated entry: ${entryId}`);
+          const embedding = await generateEmbedding(updatedEntry.content);
+          
+          await pineconeIndex.upsert([
+            {
+              id: entryId,
+              values: embedding,
+              metadata: {
+                userId: userId
+              }
+            }
+          ]);
+          console.log(`[Pinecone Write] Successfully updated embedding for: ${entryId}`);
+        } catch (err) {
+          console.error(`[Pinecone Write Error] Failed to update embedding for ${entryId}:`, err);
+        }
+      })();
+    }
+  } catch (error) {
+    console.error('Error updating journal entry:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 
   /**
    * Deletes a specific journal entry. (Protected & Authorized)
    */
   const deleteJournalEntry = async (req, res) => {
-    try {
-      const { entryId } = req.params;
-      const userId = req.user.userId;
+  try {
+    const { entryId } = req.params;
+    const userId = req.user.userId;
 
-      const deleteQuery = 'DELETE FROM journal_entries WHERE entry_id = $1 AND author_id = $2';
-      const result = await pool.query(deleteQuery, [entryId, userId]);
+    // 1. Delete from Postgres (and verify ownership)
+    const deleteQuery = 'DELETE FROM journal_entries WHERE entry_id = $1 AND author_id = $2';
+    const result = await pool.query(deleteQuery, [entryId, userId]);
 
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Journal entry not found or you are not the author.' });
-      }
-
-      res.status(200).json({ message: 'Journal entry deleted successfully.' });
-    } catch (error) {
-      console.error('Error deleting journal entry:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Journal entry not found or you are not the author.' });
     }
-  };
+
+    // 2. Respond to the user immediately
+    res.status(200).json({ message: 'Journal entry deleted successfully.' });
+
+    // 3. (In Background) Delete the vector from Pinecone
+    (async () => {
+      try {
+        console.log(`[Pinecone Write] Deleting embedding for: ${entryId}`);
+        await pineconeIndex.deleteOne(entryId);
+        console.log(`[Pinecone Write] Successfully deleted embedding for: ${entryId}`);
+      } catch (err) {
+        console.error(`[Pinecone Write Error] Failed to delete embedding for ${entryId}:`, err);
+      }
+    })();
+
+  } catch (error) {
+    console.error('Error deleting journal entry:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 
   // --- NEW AI FEEDBACK FUNCTION ---
 

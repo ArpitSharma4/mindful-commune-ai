@@ -1,40 +1,66 @@
 const pool = require('../db');
+// Import our new AI/DB helpers
+const { pineconeIndex } = require('../utils/pineconeClient');
+const { generateEmbedding } = require('../utils/aiHelpers');
 
 /**
- * [HELPER] Searches the user's private journals for relevant keywords.
+ * ===================================================================
+ * HELPER FUNCTIONS
+ * ===================================================================
+ */
+
+/**
+ * [HELPER] Performs a semantic (vector) search on the user's journals.
  * This is the "R" (Retrieval) in RAG.
  */
-const searchJournals = async (userId, userMessage) => {
+const semanticSearchJournals = async (userId, userMessage) => {
   try {
-    // A simple keyword extractor. We'll ignore common, small "stop words".
-    const stopWords = ['a', 'an', 'the', 'is', 'in', 'on', 'what', 'my', 'i', 'me', 'about', 'ever', 'have', 'feel', 'feeling', 'did', 'am', 'was'];
-    const keywords = userMessage.toLowerCase()
-      .replace(/[?,.]/g, '') // Remove punctuation
-      .split(' ')
-      .filter(word => word.length > 3 && !stopWords.includes(word)); // Find significant keywords
+    // 1. Create an embedding (a vector) for the user's *question*.
+    const queryVector = await generateEmbedding(userMessage);
 
-    if (keywords.length === 0) {
-      return []; // No keywords to search for
+    // 2. Define our relevance threshold. We tune this to get good matches.
+    // 0.70 is a good balance, less strict than 0.75.
+    const SIMILARITY_THRESHOLD = 0.70; 
+
+    // 3. Query Pinecone for the top 3 most similar vectors
+    const queryResponse = await pineconeIndex.query({
+      vector: queryVector,
+      topK: 3,
+      // **CRITICAL SECURITY FILTER**: Only search for vectors
+      // that belong to the currently logged-in user.
+      filter: {
+        userId: { '$eq': userId }
+      },
+      // Scores are returned by default
+    });
+
+    // 4. Filter the results by our threshold
+    const relevantMatches = queryResponse.matches.filter(
+      match => match.score >= SIMILARITY_THRESHOLD
+    );
+
+    // 5. Get the list of entry IDs from the relevant matches
+    const entryIds = relevantMatches.map(match => match.id);
+
+    if (entryIds.length === 0) {
+      console.log(`[RAG] Found ${queryResponse.matches.length} matches, but 0 were above the ${SIMILARITY_THRESHOLD} threshold.`);
+      return []; // Return an empty array
     }
-
-    // Build a dynamic query: "WHERE content ILIKE '%word1%' OR content ILIKE '%word2%'..."
-    const ilikeClauses = keywords.map((_, index) => `content ILIKE $${index + 2}`).join(' OR ');
-    const queryParams = [userId, ...keywords.map(kw => `%${kw}%`)];
     
+    // 6. Use the relevant IDs to fetch the *actual text* from our Postgres database
     const searchQuery = `
       SELECT content, created_at
       FROM journal_entries
-      WHERE author_id = $1 AND (${ilikeClauses})
-      ORDER BY created_at DESC
-      LIMIT 3;
+      WHERE entry_id = ANY($1::uuid[])
+      ORDER BY created_at DESC;
     `;
-
-    const searchResult = await pool.query(searchQuery, queryParams);
-    console.log(`[RAG] Found ${searchResult.rowCount} relevant journal entries.`);
+    
+    const searchResult = await pool.query(searchQuery, [entryIds]);
+    console.log(`[RAG] Found ${searchResult.rowCount} relevant & high-quality entries from Postgres.`);
     return searchResult.rows;
 
   } catch (error) {
-    console.error('[RAG] Error searching journals:', error);
+    console.error('[RAG] Error in semantic search:', error);
     return []; // Return empty on error, so chat can continue
   }
 };
@@ -49,10 +75,8 @@ const generateAndSaveTitle = async (conversationId, userMessage, botMessage) => 
     const titleGenPrompt = `
       Summarize the following conversation in 3-5 words. 
       Do NOT use quotes.
-      
       User: "${userMessage}"
       Assistant: "${botMessage}"
-      
       Summary:
     `;
 
@@ -138,10 +162,9 @@ const getConversationMessages = async (req, res) => {
     `;
     const result = await pool.query(query, [conversationId]);
     
-    // Format for frontend (assuming 'content' is JSONB/JSON)
+    // Format for frontend (assuming 'content' is JSONB, 'pg' driver auto-parses it)
     const frontendHistory = result.rows.map(msg => {
-      // The 'content' column stores the Gemini .parts array, e.g., [{ "text": "Hello" }]
-      // We extract the text for the frontend.
+      // 'msg.content' is already a JS array like [{ "text": "Hello" }]
       const contentText = msg.content?.[0]?.text || '';
       return { 
         role: msg.role === 'model' ? 'assistant' : 'user', 
@@ -183,7 +206,14 @@ const createNewChat = async (req, res) => {
     const userMessageGemini = { role: 'user', parts: [{ text: message }] };
     
     // 3. Define System Prompt
-    const systemPrompt = `You are 'Mindwell,' a supportive AI companion... (rest of your system prompt)... If the user's text seems potentially related to self-harm or crisis, ONLY respond with the exact text: CRISIS_DETECTED`;
+    const systemPrompt = `You are 'Mindwell,' a supportive and empathetic AI companion. Your goal is to hold a natural, supportive, and helpful conversation.
+
+YOUR RULES:
+1.  **Use Markdown formatting** (like **bold**, *italics*, and bulleted lists) to make your responses clear and easy to read.
+2.  **Be conversational.** Ask follow-up questions when it feels natural, to encourage the user to explore their thoughts.
+3.  **Always be supportive and non-judgmental.**
+4.  **Do NOT give medical advice or act like a licensed therapist.** You are a companion, not a clinician.
+5.  If the user's text seems potentially related to self-harm or crisis, ONLY respond with the exact text: CRISIS_DETECTED`;
     
     // 4. Prepare payload for Gemini (only the system prompt + first user message)
     const apiKey = process.env.GEMINI_API_KEY || "";
@@ -201,40 +231,70 @@ const createNewChat = async (req, res) => {
     };
     
     // 5. Call Gemini API (with retry logic)
-    // (A full retry loop is recommended here, simplified for brevity)
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!response.ok) {
-      console.error('Gemini API Error in createNewChat:', await response.json());
-      throw new Error('Gemini API failed');
-    }
-    const geminiResult = await response.json();
-    let aiResponseText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I'm having trouble right now.";
+    let aiResponseText = '';
+    let attempt = 0;
+    const maxAttempts = 5;
+    let delay = 1000;
 
-    // (Add your safety/crisis check here)
+    while (attempt < maxAttempts) {
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          if (response.status === 429 || response.status >= 500) {
+            console.warn(`[createNewChat] Gemini API failed... Retrying...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
+            attempt++;
+            continue;
+          } else {
+            console.error('Gemini API Error in createNewChat:', await response.json());
+            throw new Error(`Gemini API failed with status ${response.status}`);
+          }
+        }
+        const geminiResult = await response.json();
+        const finishReason = geminiResult.candidates?.[0]?.finishReason;
+        if (finishReason === 'SAFETY') {
+          aiResponseText = "I'm not able to respond to that due to my safety guidelines.";
+        } else if (geminiResult.candidates?.[0]?.content?.parts?.[0]?.text) {
+          aiResponseText = geminiResult.candidates[0].content.parts[0].text;
+        } else {
+          console.error('Unexpected Gemini API response structure:', geminiResult);
+          aiResponseText = "Sorry, I'm having trouble connecting right now.";
+        }
+        break; 
+      } catch (error) {
+         if (attempt >= maxAttempts - 1) throw error;
+         console.warn(`[createNewChat] Gemini API request failed... Retrying...`);
+         await new Promise(resolve => setTimeout(resolve, delay));
+         delay *= 2;
+         attempt++;
+      }
+    }
+    
+    // 6. Safety/Crisis Check
     if (aiResponseText.trim() === 'CRISIS_DETECTED') {
-      aiResponseText = "It sounds like you're going through a very difficult time... [Crisis Resources]";
+      aiResponseText = "It sounds like you're going through a very difficult time. Please reach out for support. You can contact the National Suicide Prevention Lifeline at 988. You are not alone.";
     }
 
-    // 6. Save both messages to the database
+    // 7. Save both messages to the database
     const aiMessageGemini = { role: 'model', parts: [{ text: aiResponseText }] };
     const saveMsgQuery = 'INSERT INTO chat_messages (conversation_id, role, content) VALUES ($1, $2, $3)';
     
-    // Save user message (assuming 'content' is JSONB)
+    // We MUST stringify the array to store it in a TEXT or JSONB column
     await client.query(saveMsgQuery, [conversationId, userMessageGemini.role, JSON.stringify(userMessageGemini.parts)]);
-    // Save AI reply (assuming 'content' is JSONB)
     await client.query(saveMsgQuery, [conversationId, aiMessageGemini.role, JSON.stringify(aiMessageGemini.parts)]);
 
-    // 7. Commit transaction
+    // 8. Commit transaction
     await client.query('COMMIT');
     
-    // 8. Send back the *new conversation* so the frontend can redirect
+    // 9. Send back the *new conversation* so the frontend can redirect
     res.status(201).json(newConversation);
 
-    // 9. Generate a title in the background (fire and forget)
+    // 10. Generate a title in the background (fire and forget)
     generateAndSaveTitle(conversationId, message, aiResponseText).catch(err => {
       console.error('Background title generation failed:', err);
     });
@@ -273,7 +333,7 @@ const handleChat = async (req, res) => {
 
     await client.query('BEGIN');
 
-    // 2. Get existing messages from DB (Gemini format)
+    // 2. Get existing messages from DB
     const historyQuery = `
       SELECT role, content 
       FROM chat_messages 
@@ -282,25 +342,24 @@ const handleChat = async (req, res) => {
     `;
     const historyResult = await client.query(historyQuery, [conversationId]);
     
-    // We assume 'content' is JSONB and stores the .parts array, e.g., [{"text": "Hello"}]
+    // Assuming 'content' is JSONB, 'pg' driver auto-parses it
     const geminiHistory = historyResult.rows.map(msg => ({
       role: msg.role,
       parts: msg.content
     }));
 
-    // 3. --- NEW "AGENT" LOGIC: Detect if this is a memory question ---
+    // 3. --- RAG LOGIC: Detect if this is a memory question ---
     let relevantEntries = [];
-    const memoryKeywords = ['remember', 'in my journal', 'have i ever', 'tell me about', 'my past', 'what did i say about', 'anxious'];
+    const memoryKeywords = ['remember', 'in my journal', 'have i ever', 'tell me about', 'my past', 'what did i say about', 'anxious', 'worried', 'stressed'];
     const isMemoryQuestion = memoryKeywords.some(kw => message.toLowerCase().includes(kw));
 
     if (isMemoryQuestion) {
+      console.log(`[RAG] Detected memory question. Performing semantic search...`);
       // 4. --- RETRIEVAL ---
-      // If it is, search the user's journals for relevant context.
-      relevantEntries = await searchJournals(userId, message);
+      relevantEntries = await semanticSearchJournals(userId, message);
     }
 
     // 5. --- AUGMENTATION ---
-    // If we found relevant entries, "augment" the context.
     if (relevantEntries.length > 0) {
       let augmentedContext = "Before you respond to the user's last message, here is some relevant context from their private journal entries:\n\n";
       relevantEntries.forEach(entry => {
@@ -308,67 +367,114 @@ const handleChat = async (req, res) => {
       });
       augmentedContext += "Now, please answer the user's last message *using this context*. If you use this context, briefly mention that you found it in their journal (e.g., 'I found an entry from...').";
       
-      // Add this "context" as a "model" (AI) message, to "brief" the AI.
       geminiHistory.push({ role: 'model', parts: [{ text: augmentedContext }] });
     }
 
-    // 6. Add the new user message (in Gemini format) at the very end
+    // 6. Add the new user message
     const userMessageGemini = { role: 'user', parts: [{ text: message }] };
     geminiHistory.push(userMessageGemini);
 
-    // 7. Prune history if it's too long (Context Window Management)
-    const MAX_MESSAGES_TO_SEND = 20; // Keep first + last 20
+    // 7. Prune history
+    const MAX_MESSAGES_TO_SEND = 20;
     let historyForGemini = geminiHistory;
     if (geminiHistory.length > MAX_MESSAGES_TO_SEND) {
       historyForGemini = [
-        geminiHistory[0], // Always keep the first message
-        ...geminiHistory.slice(-MAX_MESSAGES_TO_SEND) // And the last 20
+        geminiHistory[0], 
+        ...geminiHistory.slice(-MAX_MESSAGES_TO_SEND)
       ];
     }
     
     // 8. Define System Prompt
-    const systemPrompt = `You are 'Mindwell,' a supportive AI companion... (rest of your system prompt)... If the user's text seems potentially related to self-harm or crisis, ONLY respond with the exact text: CRISIS_DETECTED`;
+    const systemPrompt = `You are 'Mindwell,' a supportive and empathetic AI companion. Your goal is to hold a natural, supportive, and helpful conversation.
+
+YOUR RULES:
+1.  **Use Markdown formatting** (like **bold**, *italics*, and bulleted lists) to make your responses clear and easy to read.
+2.  **Be conversational.** Ask follow-up questions when it feels natural, to encourage the user to explore their thoughts.
+3.  **Always be supportive and non-judgmental.**
+4.  **Do NOT give medical advice or act like a licensed therapist.** You are a companion, not a clinician.
+5.  If the user's text seems potentially related to self-harm or crisis, ONLY respond with the exact text: CRISIS_DETECTED`;
 
     // 9. Prepare payload for Gemini
     const apiKey = process.env.GEMINI_API_KEY || "";
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
     const payload = {
       systemInstruction: { parts: [{ text: systemPrompt }] },
-      contents: historyForGemini, // Use the pruned history
-      safetySettings: [ /* ... your safety settings ... */ ],
-      generationConfig: { /* ... your generation config ... */ },
+      contents: historyForGemini,
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" }
+      ],
+      generationConfig: { 
+        maxOutputTokens: 512, 
+        temperature: 0.7 
+      },
     };
 
-    // 10. Call Gemini API (Add your retry loop here for production)
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!response.ok) {
-      console.error('Gemini API Error in handleChat:', await response.json());
-      throw new Error('Gemini API failed');
+    // 10. Call Gemini API (with retry loop)
+    let aiResponseText = '';
+    let attempt = 0;
+    const maxAttempts = 5;
+    let delay = 1000;
+
+    while (attempt < maxAttempts) {
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          if (response.status === 429 || response.status >= 500) {
+            console.warn(`[handleChat] Gemini API failed... Retrying...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
+            attempt++;
+            continue;
+          } else {
+            console.error('Gemini API Error in handleChat:', await response.json());
+            throw new Error(`Gemini API failed with status ${response.status}`);
+          }
+        }
+        
+        const geminiResult = await response.json();
+        const finishReason = geminiResult.candidates?.[0]?.finishReason;
+
+        if (finishReason === 'SAFETY') {
+          aiResponseText = "I'm not able to respond to that due to my safety guidelines.";
+        } else if (geminiResult.candidates?.[0]?.content?.parts?.[0]?.text) {
+          aiResponseText = geminiResult.candidates[0].content.parts[0].text;
+        } else {
+          console.error('Unexpected Gemini API response structure:', geminiResult);
+          aiResponseText = "Sorry, I'm having trouble connecting right now.";
+        }
+        
+        break; // Success
+      } catch (error) {
+         if (attempt >= maxAttempts - 1) {
+             throw error; // Throw after max retries
+         }
+         console.warn(`[handleChat] Gemini API request failed... Retrying...`);
+         await new Promise(resolve => setTimeout(resolve, delay));
+         delay *= 2;
+         attempt++;
+      }
     }
-    
-    const geminiResult = await response.json();
-    let aiResponseText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I'm having trouble connecting right now.";
     
     // 11. Safety/Crisis Check
     if (aiResponseText.trim() === 'CRISIS_DETECTED') {
-      aiResponseText = "It sounds like you're going through a very difficult time... [Crisis Resources]";
-      // Send the reply, but do NOT save this turn to history (or save a redacted version)
-      await client.query('ROLLBACK'); // Don't save this turn
+      aiResponseText = "It sounds like you're going through a very difficult time. Please reach out for support. You can contact the National Suicide Prevention Lifeline at 988. You are not alone.";
+      await client.query('ROLLBACK');
       return res.status(200).json({ role: 'assistant', content: aiResponseText, isCrisis: true });
     }
 
     // 12. Save the *actual* conversation turn to the database
-    // (We save the user message and the final AI reply, NOT the augmented context)
     const aiMessageGemini = { role: 'model', parts: [{ text: aiResponseText }] };
     const saveMsgQuery = 'INSERT INTO chat_messages (conversation_id, role, content) VALUES ($1, $2, $3)';
     
-    // Save user message (assuming 'content' is JSONB)
+    // We MUST stringify the array to store it in a TEXT or JSONB column
     await client.query(saveMsgQuery, [conversationId, userMessageGemini.role, JSON.stringify(userMessageGemini.parts)]);
-    // Save AI reply (assuming 'content' is JSONB)
     await client.query(saveMsgQuery, [conversationId, aiMessageGemini.role, JSON.stringify(aiMessageGemini.parts)]);
     
     await client.query('COMMIT');
