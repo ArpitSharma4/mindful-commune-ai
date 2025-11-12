@@ -142,10 +142,13 @@
                 <div
                   className={cn(
                     'max-w-[80%] p-4 rounded-lg',
-                      msg.role === 'user'
-                      ? 'bg-blue-600 text-white' // Or your primary color
-                      : 'bg-gray-700 text-white',
-                      'prose prose-invert max-w-none'
+                    msg.role === 'user'
+                      ? 'bg-blue-600 text-white dark:bg-blue-700' // User message in blue
+                      : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white', // Bot message in gray/white
+                    'prose max-w-none dark:prose-invert',
+                    'prose-p:text-current prose-strong:text-current prose-headings:text-current',
+                    'prose-a:text-blue-500 hover:prose-a:text-blue-400',
+                    'dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300'
                   )}
                 >
                  <ReactMarkdown

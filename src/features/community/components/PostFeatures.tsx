@@ -408,7 +408,7 @@ const JournalPost = ({
             {/* Content */}
             <div className="text-sm text-foreground leading-relaxed">
               <div 
-                className={`transition-all duration-300 ${isExpanded ? 'max-h-none' : 'max-h-32 overflow-hidden'} prose prose-sm max-w-none`}
+                className={`transition-all duration-300 ${isExpanded ? 'max-h-none' : 'max-h-32 overflow-hidden'} prose prose-sm dark:prose-invert max-w-none prose-p:text-foreground prose-headings:text-foreground`}
                 dangerouslySetInnerHTML={{ 
                   __html: isExpanded ? content : truncatedContent 
                 }}

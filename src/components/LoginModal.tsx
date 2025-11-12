@@ -170,8 +170,8 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
           duration: 3000,
         });
 
-        // Redirect to global feed or home page
-        navigate('/global-feed');
+        // Redirect to home page
+        navigate('/');
       } else if (type === 'oauth-error') {
         toast({
           title: "Login Failed",
