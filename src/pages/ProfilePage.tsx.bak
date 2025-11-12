@@ -141,8 +141,7 @@ export default function ProfilePage() {
   };
 
   // Filter for unlocked achievements
-  // This is the corrected code
-const earnedAchievements = achievements?.filter(ach => ach.isEarned) || [];
+  const earnedAchievements = achievements?.filter(ach => ach.unlocked) || [];
 
   // Get achievement icon based on type
   const getAchievementIcon = (type: string) => {

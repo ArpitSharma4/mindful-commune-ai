@@ -6,8 +6,34 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Zap, Flame, PenLine, Trophy, Users, Calendar } from 'lucide-react';
+import { Zap, Flame, PenLine, Trophy, Users, Calendar, BookOpenText, Check } from 'lucide-react';
 import { useGamification } from '@/contexts/GamificationContext';
+
+// Helper function to get achievement icon based on ID
+const getAchievementIcon = (id: string) => {
+  const iconClass = 'w-6 h-6';
+  
+  if (id.includes('STREAK')) {
+    return <Flame className={`${iconClass} text-red-400`} />;
+  }
+  if (id.includes('ENTRY')) {
+    return id === 'FIRST_ENTRY' 
+      ? <PenLine className={`${iconClass} text-yellow-400`} />
+      : <BookOpenText className={`${iconClass} text-blue-400`} />;
+  }
+  if (id.includes('WEEKLY') || id.includes('MONTHLY')) {
+    return <Calendar className={`${iconClass} text-purple-400`} />;
+  }
+  return <Trophy className={`${iconClass} text-yellow-400`} />;
+};
+
+// Helper function to format achievement title
+const getAchievementTitle = (id: string) => {
+  return id
+    .split('_')
+    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(' ');
+};
 import { useToast } from '@/components/ui/use-toast';
 
 interface UserProfile {
@@ -35,7 +61,26 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState<UserPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { totalPoints, currentStreak, isLoading: isLoadingPoints } = useGamification();
+  const { 
+    totalPoints, 
+    currentStreak, 
+    achievements, 
+    isLoading: isLoadingPoints, 
+    error: gamificationError,
+    refreshStatus // Add refreshStatus function
+  } = useGamification();
+  
+  // Debug logs
+  useEffect(() => {
+    console.log('Gamification data in profile:', {
+      isLoadingPoints,
+      totalPoints,
+      currentStreak,
+      achievementsCount: achievements?.length || 0,
+      achievements,
+      gamificationError
+    });
+  }, [isLoadingPoints, totalPoints, currentStreak, achievements, gamificationError]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -197,23 +242,80 @@ export default function ProfilePage() {
             </TabsContent>
 
             <TabsContent value="achievements" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="text-center p-4 border rounded-lg">
-                  <Trophy className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
-                  <h3 className="font-medium">First Entry</h3>
-                  <p className="text-sm text-muted-foreground">Write your first journal entry</p>
+              {isLoadingPoints ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
-                <div className="text-center p-4 border rounded-lg opacity-50">
-                  <Trophy className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <h3 className="font-medium text-muted-foreground">Community Builder</h3>
-                  <p className="text-sm text-muted-foreground">Join 5 communities</p>
+              ) : gamificationError ? (
+                <div className="text-center py-8 text-red-400">
+                  <p>Error loading achievements: {gamificationError}</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => window.location.reload()}
+                  >
+                    Retry
+                  </Button>
                 </div>
-                <div className="text-center p-4 border rounded-lg opacity-50">
-                  <Trophy className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <h3 className="font-medium text-muted-foreground">Streak Master</h3>
-                  <p className="text-sm text-muted-foreground">Maintain a 7-day streak</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.isArray(achievements) && achievements.length > 0 ? (
+                    achievements
+                      .filter(ach => ach.unlocked || ach.isEarned)
+                      .map((achievement) => {
+                        console.log('Rendering achievement:', achievement);
+                        return (
+                          <Card key={achievement.id || achievement.code} className="relative overflow-hidden">
+                            <CardHeader className="pb-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <CardTitle className="flex items-center gap-2 text-white">
+                                    {getAchievementIcon(achievement.code || achievement.id)}
+                                    {getAchievementTitle(achievement.code || achievement.id)}
+                                  </CardTitle>
+                                  <CardDescription className="mt-1 text-gray-300">
+                                    {achievement.description}
+                                  </CardDescription>
+                                </div>
+                                <span className="px-2 py-1 text-xs font-bold rounded-full bg-yellow-500/20 text-yellow-400">
+                                  {achievement.points || 0} pts
+                                </span>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="pb-4">
+                              {(achievement.unlocked_at || achievement.earnedAt) && (
+                                <div className="text-xs text-green-400 mt-2">
+                                  Unlocked on {new Date(achievement.unlocked_at || achievement.earnedAt).toLocaleDateString()}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })
+                  ) : (
+                    <div className="col-span-full text-center py-8">
+                      <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                      <h3 className="text-lg font-medium text-muted-foreground">No achievements yet</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Start journaling to earn your first achievement!
+                      </p>
+                      <div className="mt-4 text-xs text-muted-foreground">
+                        <p>Total Points: {totalPoints}</p>
+                        <p>Current Streak: {currentStreak} days</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={refreshStatus}
+                          disabled={isLoadingPoints}
+                        >
+                          {isLoadingPoints ? 'Checking...' : 'Check Again'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </TabsContent>
 
             <TabsContent value="stats" className="mt-4">

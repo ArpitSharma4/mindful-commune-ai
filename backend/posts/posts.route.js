@@ -10,7 +10,8 @@ const {
   getPostById,
   getTrendingPosts,
   getRecentPosts,
-  deletePost
+  deletePost,
+  getPostsByUsername
 } = require('./posts.controller');
 const authMiddleware = require('../middleware/auth');
 const commentRoutes = require('../comments/comments.route');
@@ -41,6 +42,9 @@ router.get('/in/:communityId', getPostsByCommunity);
 // Global feed endpoints
 router.get('/trending', getTrendingPosts);
 router.get('/recent', getRecentPosts);
+
+// Get all posts by a specific username
+router.get('/user/:username', getPostsByUsername);
 
 // This will handle requests like GET /api/posts/some-post-uuid
 router.get('/:postId', getPostById);

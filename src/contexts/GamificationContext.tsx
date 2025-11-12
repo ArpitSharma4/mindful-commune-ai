@@ -32,26 +32,78 @@ export const GamificationProvider = ({ children }: { children: ReactNode }) => {
   // Use useCallback to memoize the fetch function
   const fetchStatus = useCallback(async () => {
     const token = localStorage.getItem('authToken');
+    console.log('Fetching gamification status...', { hasToken: !!token });
+    
     if (!token) {
+      console.log('No auth token found, skipping gamification fetch');
       setIsLoading(false);
-      return; // Don't fetch if not logged in
+      return;
     }
     
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/gamification/status', {
-        headers: { 'Authorization': `Bearer ${token}` },
+      // Add cache-busting query parameter
+      const cacheBuster = new Date().getTime();
+      const url = `http://localhost:3000/api/gamification/status?_=${cacheBuster}`;
+
+      const response = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include',
+        cache: 'no-store' as RequestCache // Ensure no caching
       });
+      
+      console.log('Gamification response status:', response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to fetch status');
+        const errorText = await response.text();
+        console.error('Gamification API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText,
+        });
+        
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error('Failed to parse error response:', e);
+        }
+        
+        throw new Error(errorMessage);
       }
+      
       const data = await response.json();
-      setStatus(data);
+      console.log('Gamification data received:', data);
+      
+      // Ensure we have the expected structure
+      const normalizedData = {
+        totalPoints: data.totalPoints || 0,
+        totalEntries: data.totalEntries || 0,
+        currentStreak: data.currentStreak || 0,
+        achievements: Array.isArray(data.achievements) ? data.achievements : [],
+      };
+      
+      console.log('Setting gamification status:', normalizedData);
+      setStatus(normalizedData);
       setError(null);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       console.error("Failed to fetch gamification status:", error);
-      setError(error instanceof Error ? error.message : 'An unknown error occurred');
+      setError(errorMessage);
+      
+      // Set default empty state on error to prevent UI issues
+      setStatus({
+        totalPoints: 0,
+        totalEntries: 0,
+        currentStreak: 0,
+        achievements: [],
+      });
     } finally {
       setIsLoading(false);
     }

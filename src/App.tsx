@@ -16,9 +16,10 @@ import Achievements from "./pages/Achievements";
 import NotFound from "./pages/NotFound";
 import ProfilePage from "./pages/ProfilePage";
 // Import new chat components
-import {ChatLayout} from "./pages/chat/ChatLayout";
+import { ChatLayout } from "./pages/chat/ChatLayout";
 import NewChatPage from "./pages/chat/NewChatPage";
-import {ConversationPage} from "./pages/chat/ConversationPage";
+import { ConversationPage } from "./pages/chat/ConversationPage";
+import { GamificationProvider } from "@/contexts/GamificationContext";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -26,7 +27,8 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <GamificationProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/global-feed" element={<Home />} />
@@ -54,6 +56,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      </GamificationProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

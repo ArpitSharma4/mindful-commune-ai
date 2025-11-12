@@ -41,7 +41,7 @@ app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080'], // Whitelist of frontend origins.
   credentials: true, // Allows cookies and authorization headers to be sent from the frontend.
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods.
-  allowedHeaders: ['Content-Type', 'Authorization'] // Allowed request headers.
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma'] // Allowed request headers.
 }));
 
 // Configure JSON Body Parser

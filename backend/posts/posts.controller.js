@@ -377,14 +377,63 @@ const deletePost = async (req, res) => {
 };
 
 // that contains ALL of the controller functions.
+/**
+ * Fetches all posts for a specific user by their username. (Public)
+ */
+const getPostsByUsername = async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const query = `
+      SELECT 
+        p.post_id,
+        p.title,
+        p.content,
+        p.media_url,
+        p.media_type,
+        p.created_at,
+        p.is_posted_anonymously,
+        p.community_id,
+        u.username,
+        u.avatar_url,
+        c.name AS community_name,
+        c.slug AS community_slug,
+        COALESCE((SELECT SUM(vote_type) FROM votes v WHERE v.post_id = p.post_id), 0) AS vote_score,
+        COALESCE((SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id), 0) AS comment_count
+      FROM posts p
+      JOIN users u ON p.author_id = u.user_id
+      LEFT JOIN communities c ON p.community_id = c.community_id
+      WHERE LOWER(u.username) = LOWER($1)
+      ORDER BY p.created_at DESC;
+    `;
+    
+    const result = await pool.query(query, [username]);
+
+    // Apply anonymity if needed
+    const processedRows = result.rows.map(post => {
+      if (post.is_posted_anonymously) {
+        return { ...post, username: 'Anonymous', avatar_url: null };
+      }
+      return post;
+    });
+
+    res.status(200).json(processedRows);
+
+  } catch (error) {
+    console.error('Error fetching posts by user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
-  createPost,
-  getPostsByCommunity,
-  voteOnPost,
-  updatePost,
-  getTrendingPosts,
-  getRecentPosts,
-  getPostById,
-  deletePost,
+  createPost,
+  getPostsByCommunity,
+  voteOnPost,
+  updatePost,
+  getTrendingPosts,
+  getRecentPosts,
+  getPostById,
+  deletePost,
+  getPostsByUsername 
 };
 
