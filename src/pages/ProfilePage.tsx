@@ -202,10 +202,11 @@ const earnedAchievements = achievements?.filter(ach => ach.isEarned) || [];
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row gap-8">
+    <div className="flex flex-col min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 flex-1 flex flex-col">
+        <div className="flex flex-col md:flex-row gap-8 flex-1" style={{ minHeight: 'calc(100vh - 8rem)' }}>
         {/* Left Sidebar */}
-        <div className="w-full md:w-1/3 space-y-6">
+        <div className="w-full md:w-1/3 space-y-6 flex flex-col">
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col items-center space-y-4">
@@ -269,15 +270,15 @@ const earnedAchievements = achievements?.filter(ach => ach.isEarned) || [];
         </div>
 
         {/* Main Content */}
-        <div className="flex-1">
-          <Tabs defaultValue="posts" className="w-full">
+        <div className="flex-1 flex flex-col min-h-0">
+          <Tabs defaultValue="posts" className="w-full flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="posts">Posts ({profile.postCount})</TabsTrigger>
               <TabsTrigger value="achievements">Achievements</TabsTrigger>
               <TabsTrigger value="stats">Stats</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="posts" className="space-y-4 mt-4">
+            <TabsContent value="posts" className="flex-1 space-y-4 mt-4 overflow-y-auto">
               {isLoadingPosts ? (
                 <div className="flex justify-center items-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -377,7 +378,7 @@ const earnedAchievements = achievements?.filter(ach => ach.isEarned) || [];
               )}
             </TabsContent>
 
-            <TabsContent value="achievements" className="mt-4">
+            <TabsContent value="achievements" className="mt-4 flex-1 overflow-y-auto">
               {isLoadingGamification ? (
                 <div className="flex flex-col items-center justify-center p-8 space-y-4">
                   <Loader2 className="h-8 w-8 animate-spin" />
@@ -436,7 +437,7 @@ const earnedAchievements = achievements?.filter(ach => ach.isEarned) || [];
               )}
             </TabsContent>
 
-            <TabsContent value="stats" className="mt-4">
+            <TabsContent value="stats" className="mt-4 flex-1 overflow-y-auto">
               <div className="space-y-4">
                 <Card>
                   <CardContent className="pt-6">
@@ -467,6 +468,7 @@ const earnedAchievements = achievements?.filter(ach => ach.isEarned) || [];
           </Tabs>
         </div>
       </div>
+    </div>
     </div>
   );
 }

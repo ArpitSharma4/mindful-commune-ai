@@ -45,9 +45,9 @@ const NewChatPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-full p-4">
+    <div className="flex flex-col h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between p-4 border-b">
         {/* 1. Back Button (Left) */}
         <Button asChild variant="ghost" className="text-muted-foreground hover:text-white">
           <Link to="/">
@@ -69,25 +69,30 @@ const NewChatPage = () => {
         <div className="w-32"></div>
       </div>
 
-      {/* Welcome Message */}
-      <div className="flex-1 flex flex-col justify-center items-center text-center">
-        <Sparkles className="h-16 w-16 text-blue-400 opacity-30" />
-        <p className="text-muted-foreground mt-4">How can I help you today?</p>
-      </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Welcome Message - Centered in the available space */}
+        <div className="flex-1 flex flex-col justify-center items-center text-center p-4">
+          <Sparkles className="h-16 w-16 text-blue-400 opacity-30" />
+          <p className="text-muted-foreground mt-4">How can I help you today?</p>
+        </div>
 
-      {/* Input Form */}
-      <form onSubmit={handleSubmit} className="flex gap-2 mt-4">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message to start a new chat..."
-          disabled={isCreating}
-          className="flex-1"
-        />
-        <Button type="submit" disabled={isCreating || !input.trim()}>
-          {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        </Button>
-      </form>
+        {/* Input Form - Fixed at the bottom */}
+        <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your message to start a new chat..."
+              disabled={isCreating}
+              className="flex-1"
+            />
+            <Button type="submit" disabled={isCreating || !input.trim()}>
+              {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };

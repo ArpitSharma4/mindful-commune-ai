@@ -19,6 +19,7 @@ import { JournalEntry, JournalStats } from './types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import LeftSidebar from '@/components/LeftSidebar';
+import { Leaf } from 'lucide-react';
 
 interface JournalingPageProps {
   className?: string;
@@ -171,6 +172,23 @@ export const JournalingPage: React.FC<JournalingPageProps> = ({ className }) => 
   return (
     <div className="min-h-screen">
       <main className="w-full px-4 py-12">
+        {/* Leaf Toggle Button - Only visible when sidebar is closed */}
+        {!isSidebarOpen && (
+          <div className="block">
+            {/* Vertical rail line split into two segments to avoid the leaf area */}
+            <div className="fixed left-[2.625rem] top-0 h-[calc(8rem-0.25rem)] w-px bg-border/70 z-40 pointer-events-none" />
+            <div className="fixed left-[2.625rem] bottom-0 top-[calc(8rem+2.25rem+0.25rem)] w-px bg-border/70 z-40 pointer-events-none" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="fixed left-6 top-32 z-60 h-12 w-12 rounded-full bg-teal-500 hover:bg-teal-600 text-white shadow"
+              aria-label="Open sidebar"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Leaf className="h-6 w-6 text-white" />
+            </Button>
+          </div>
+        )}
         <div className={`transition-all duration-500 ease-in-out ${isSidebarOpen ? "grid grid-cols-1 md:grid-cols-[14rem_1fr] gap-6" : "grid grid-cols-1 gap-6"}`}>
           {isSidebarOpen && (
             <div className="sticky top-3 self-start">
