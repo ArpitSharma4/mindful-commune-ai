@@ -209,11 +209,6 @@ const createNewChat = async (req, res) => {
     // We now perform a RAG search on the *very first message*.
     console.log(`[RAG] Performing semantic search for new chat...`);
     const relevantEntries = await semanticSearchJournals(userId, message);
-    
-    if (isMemoryQuestion) {
-      console.log(`[RAG] Detected memory question in NEW chat. Performing semantic search...`);
-      relevantEntries = await semanticSearchJournals(userId, message);
-    }
 
     // 5. --- AUGMENTATION ---
     if (relevantEntries.length > 0) {

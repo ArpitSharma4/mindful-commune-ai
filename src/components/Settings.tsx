@@ -480,10 +480,6 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
             <Lock className="h-4 w-4 mr-2" />
             Change Password
           </Button>
-          <Button variant="outline" className="w-full justify-start">
-            <Smartphone className="h-4 w-4 mr-2" />
-            Two-Factor Authentication
-          </Button>
         </div>
       </div>
     </div>

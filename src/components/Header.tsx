@@ -121,9 +121,9 @@ const Header = () => {
   return (
     <>
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 relative">
-      <div className="w-full flex h-16 items-center px-2 border-b-0">
+      <div className="w-full flex h-16 items-center px-4 border-b-0">
         {/* Logo - Left side */}
-        <div className="flex items-center gap-2 flex-1 ml-0">
+        <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-2">
             <Heart className="h-6 w-6 text-primary" />
             <span className="font-bold text-2xl bg-gradient-primary bg-clip-text text-transparent">
@@ -132,19 +132,9 @@ const Header = () => {
           </Link>
         </div>
 
-        {/* Center Search */}
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 w-full max-w-xl items-center gap-2">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="What would feel supportive to explore today?"
-              className="pl-9 h-10 rounded-full bg-muted/50 border-muted focus:border-primary"
-            />
-          </div>
-        </div>
 
         {/* Buttons - Right side */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end">
+        <div className="flex items-center gap-2 sm:gap-3 ml-auto">
           <Button variant="gentle" size="sm" className="text-base" onClick={handleToggleTheme} aria-label="Toggle theme">
             { (resolvedTheme || theme) === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" /> }
           </Button>

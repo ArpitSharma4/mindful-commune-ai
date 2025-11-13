@@ -70,7 +70,7 @@ const CommunityMain = ({ onOpenCreatePost, disableAnimations, communityId = 1, i
           return;
         }
   
-        const response = await fetch('/api/community/joined', {
+        const response = await fetch('/api/communities/joined', {
           headers: {
             'Authorization': `Bearer ${token}`
           }

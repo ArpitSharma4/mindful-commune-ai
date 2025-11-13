@@ -626,6 +626,124 @@
     }
   };
 
+  /**
+   * Helper function to find top 3 keywords associated with specific moods.
+   */
+  const getMoodKeywords = async (userId) => {
+    // List of common words to ignore during analysis
+    const stopWords = ['a', 'an', 'the', 'i', 'me', 'my', 'is', 'in', 'it', 'to', 'and', 'was', 'feel', 'feeling', 'that', 'this', 'but', 'so', 'for', 'of', 'on', 'at', 'with', 'just', 'today', 'really', 'like'];
+    const targetMoods = ['great', 'bad', 'awful'];
+
+    // This complex query tokenizes the text, removes short words and stop words, and counts the rest.
+    const keywordQuery = `
+      WITH mood_filtered_words AS (
+        -- Split content into individual words and map them to their mood
+        SELECT 
+          LOWER(REGEXP_SPLIT_TO_TABLE(TRIM(content), '\\s+')) AS word,
+          mood
+        FROM journal_entries
+        WHERE author_id = $1 
+          AND mood IN ('great', 'bad', 'awful')
+          AND content IS NOT NULL
+      )
+      SELECT 
+        word,
+        mood,
+        COUNT(*) as word_count
+      FROM mood_filtered_words
+      WHERE LENGTH(word) > 3 
+        AND word <> ALL ($2::text[]) -- Filter out stop words
+      GROUP BY 1, 2
+      ORDER BY mood, word_count DESC;
+    `;
+    
+    const result = await pool.query(keywordQuery, [userId, stopWords]);
+
+    // Format the flat SQL result into a structured object for the frontend
+    const formattedKeywords = {};
+    targetMoods.forEach(mood => formattedKeywords[mood] = []);
+
+    result.rows.forEach(row => {
+      // Only take the top 3 keywords per mood for efficiency
+      if (formattedKeywords[row.mood] && formattedKeywords[row.mood].length < 3) {
+        formattedKeywords[row.mood].push({ word: row.word, count: parseInt(row.word_count, 10) });
+      }
+    });
+
+    return formattedKeywords;
+  };
+
+  /**
+   * Fetches journal insights including mood trends, sentiment distribution, and keyword correlations.
+   */
+  const getJournalInsights = async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      
+      // 1. Mood Trend Data (last 90 days)
+      const insightsQuery = `
+        WITH mood_scores AS (
+          SELECT 
+            DATE(created_at) as date,
+            CASE mood
+              WHEN 'great' THEN 5
+              WHEN 'good' THEN 4
+              WHEN 'okay' THEN 3
+              WHEN 'bad' THEN 2
+              WHEN 'awful' THEN 1
+              ELSE 3
+            END as mood_score,
+            COUNT(*) as daily_entries
+          FROM journal_entries
+          WHERE author_id = $1 
+            AND created_at >= $2
+            AND mood IS NOT NULL
+          GROUP BY DATE(created_at), mood
+        )
+        SELECT 
+          date,
+          ROUND(AVG(mood_score), 2) as avg_mood_score,
+          SUM(daily_entries) as daily_entries
+        FROM mood_scores
+        GROUP BY date
+        ORDER BY date;
+      `;
+      
+      const insightsResult = await pool.query(insightsQuery, [userId, threeMonthsAgo]);
+      
+      // 2. Sentiment Distribution
+      const sentimentQuery = `
+        SELECT 
+          COUNT(*) FILTER (WHERE mood IN ('great', 'good')) as positive,
+          COUNT(*) FILTER (WHERE mood IN ('okay')) as neutral,
+          COUNT(*) FILTER (WHERE mood IN ('bad', 'awful')) as negative
+        FROM journal_entries
+        WHERE author_id = $1;
+      `;
+      const sentimentResult = await pool.query(sentimentQuery, [userId]);
+      const sentimentDistribution = {
+        positive: parseInt(sentimentResult.rows[0].positive) || 0,
+        neutral: parseInt(sentimentResult.rows[0].neutral) || 0,
+        negative: parseInt(sentimentResult.rows[0].negative) || 0
+      };
+      
+      // 3. Keyword Correlations
+      const correlatedKeywords = await getMoodKeywords(userId);
+      
+      // 4. Format and return all insights
+      res.status(200).json({
+        moodTrend: insightsResult.rows,
+        sentimentDistribution,
+        correlatedKeywords
+      });
+      
+    } catch (error) {
+      console.error('Error fetching journal insights:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  };
+
   module.exports = {
     createJournalEntry,
     getAllJournalEntries,
@@ -636,5 +754,6 @@
     getJournalStats,
     getJournalPrompts,
     exportJournalEntries,
+    getJournalInsights,
   };
 

@@ -41,7 +41,7 @@ app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080'], // Whitelist of frontend origins.
   credentials: true, // Allows cookies and authorization headers to be sent from the frontend.
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods.
-  allowedHeaders: ['Content-Type', 'Authorization'] // Allowed request headers.
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma'] // Allowed request headers.
 }));
 
 // Configure JSON Body Parser
@@ -118,12 +118,31 @@ passport.use(
             );
             user = updateResult.rows[0];
           } else {
-            // Create new user
-            const insertResult = await pool.query(
-              'INSERT INTO users (username, email, google_id, avatar_url, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-              [username, email, googleId, avatar_url, 'oauth_user']
-            );
-            user = insertResult.rows[0];
+            // Generate a unique username from email
+            let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+            let uniqueUsername = baseUsername;
+            let counter = 1;
+            
+            // Check if username exists and make it unique if needed
+            while (true) {
+              try {
+                const insertResult = await pool.query(
+                  'INSERT INTO users (username, email, google_id, avatar_url, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+                  [uniqueUsername, email, googleId, avatar_url, 'oauth_user']
+                );
+                user = insertResult.rows[0];
+                break; // Exit loop if insert is successful
+              } catch (err) {
+                if (err.code === '23505' && err.constraint === 'users_username_key') {
+                  // Username exists, try with a number suffix
+                  uniqueUsername = `${baseUsername}${counter}`;
+                  counter++;
+                } else {
+                  // Some other error occurred
+                  throw err;
+                }
+              }
+            }
           }
         }
         return done(null, user);

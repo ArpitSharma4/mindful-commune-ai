@@ -391,7 +391,7 @@ const earnedAchievements = achievements?.filter(ach => ach.isEarned) || [];
                   </div>
                   <Button 
                     variant="outline" 
-                    onClick={() => window.location.reload()}
+                    onClick={() => refreshStatus()}
                     className="mt-2"
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
@@ -418,14 +418,14 @@ const earnedAchievements = achievements?.filter(ach => ach.isEarned) || [];
                     <Card key={achievement.id} className="bg-card hover:bg-accent/50 transition-colors">
                       <CardContent className="p-4 flex items-start space-x-4">
                         <div className="flex-shrink-0">
-                          {getAchievementIcon(achievement.id)}
+                          {getAchievementIcon(achievement.code)}
                         </div>
                         <div className="space-y-1">
-                          <h3 className="font-semibold">{getAchievementTitle(achievement.id)}</h3>
+                          <h3 className="font-semibold">{getAchievementTitle(achievement.code)}</h3>
                           <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                          {achievement.unlocked_at && (
+                          {achievement.earnedAt && (
                             <p className="text-xs text-muted-foreground mt-1">
-                              Unlocked on {new Date(achievement.unlocked_at).toLocaleDateString()}
+                              Unlocked on {new Date(achievement.earnedAt).toLocaleDateString()}
                             </p>
                           )}
                         </div>

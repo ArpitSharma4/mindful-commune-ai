@@ -9,7 +9,7 @@ const {
   changePassword, 
   updateAvatar, 
   removeAvatar,
-  getUserProfile 
+  getUserProfile
 } = require('./users.controller');
 const authenticateToken = require('../middleware/auth');
 

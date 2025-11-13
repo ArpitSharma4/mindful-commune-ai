@@ -452,18 +452,6 @@ const UserProfileDropdown = ({ isOpen, onClose }: UserProfileDropdownProps) => {
               )}
             </Button>
 
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 h-auto p-3"
-              onClick={() => handleMenuItem("Earn")}
-            >
-              <TrendingUp className="h-4 w-4" />
-              <div className="flex-1 text-left">
-                <span>Earn</span>
-                <div className="text-xs text-muted-foreground">Earn rewards on EchoWell</div>
-              </div>
-            </Button>
-
             <Link to="/settings" onClick={onClose}>
               <Button
                 variant="ghost"

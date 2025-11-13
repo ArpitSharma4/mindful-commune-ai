@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Mail, Lock, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, Check, AlertCircle, MailCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { post } from "@/lib/api";
 
 // Social login icons (using SVG for better compatibility)
 const GoogleIcon = () => (
@@ -55,6 +56,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
     return Object.values(passwordRules).every(rule => rule.test(password));
   };
 
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -71,6 +73,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
       });
 
       const data = await response.json();
+
 
       if (response.ok) {
         // Store the JWT token
@@ -165,7 +168,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
         
         // Show success toast
         toast({
-          title: "Welcome! 🎉",
+          title: "Welcome! ",
           description: "Successfully logged in with Google",
           duration: 3000,
         });
@@ -526,13 +529,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
   );
 
   const renderForgotPasswordForm = () => (
-    <form onSubmit={handleForgotPassword} className="p-6 space-y-4">
-      <div className="text-center space-y-2 mb-4">
-        <p className="text-sm text-muted-foreground">
-          Enter your email address and we'll send you a link to reset your password.
-        </p>
-      </div>
-
+    <form onSubmit={handleForgotPassword} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="forgot-email">Email</Label>
         <div className="relative">

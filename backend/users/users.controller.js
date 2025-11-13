@@ -3,7 +3,6 @@
 const pool = require('../db'); // The database connection pool
 const bcrypt = require('bcrypt'); // For hashing passwords
 const jwt = require('jsonwebtoken');
-
 // Password validation function
 const validatePassword = (password) => {
   const errors = [];
@@ -55,17 +54,27 @@ const createUser = async (req, res) => {
     const password_hash = await bcrypt.hash(password, saltRounds);
 
     const newUserQuery = `
-      INSERT INTO users (username, email, password_hash)
-      VALUES ($1, $2, $3)
+      INSERT INTO users (username, email, password_hash, is_verified)
+      VALUES ($1, $2, $3, TRUE)
       RETURNING user_id, username, email, created_at;
     `;
     
-    const newUser = await pool.query(newUserQuery, [username, email, password_hash]);
+    const newUser = await pool.query(newUserQuery, [
+      username, 
+      email, 
+      password_hash
+    ]);
 
-    // 5. WHAT: Send a success response.
-    //    WHY: To let the client know the user was created successfully and provide the new user's data.
-    //         We don't send the password_hash back.
-    res.status(201).json(newUser.rows[0]);
+    // Return success response without sensitive data
+    res.status(201).json({
+      message: 'Registration successful! You can now log in.',
+      user: {
+        user_id: newUser.rows[0].user_id,
+        username: newUser.rows[0].username,
+        email: newUser.rows[0].email,
+        created_at: newUser.rows[0].created_at
+      }
+    });
 
   } catch (error) {
     // 6. WHERE: Error handling is crucial.
@@ -125,6 +134,7 @@ const loginUser = async (req, res) => {
     if (!passwordMatches) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+
 
     // 6. If login is successful, create a JWT payload and the token.
     const payload = {
@@ -384,14 +394,12 @@ const getUserProfile = async (req, res) => {
     };
 
     res.status(200).json(profileData);
-
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-// Remember to export both functions so the router can use them.
 module.exports = {
   createUser,
   loginUser,
