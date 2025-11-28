@@ -28,11 +28,20 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [currentView, setCurrentView] = useState<'login' | 'signup' | 'forgot'>('login');
-  const [formData, setFormData] = useState({
+  interface FormData {
+    email: string;
+    password: string;
+    confirmPassword: string;
+    name: string;
+    rememberMe: boolean;
+  }
+
+  const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
     confirmPassword: "",
-    name: ""
+    name: "",
+    rememberMe: false
   });
 
   // Password validation rules
@@ -61,73 +70,73 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
     e.preventDefault();
     
     try {
-      const response = await fetch('/api/users/login', {
+      const response = await fetch('http://localhost:3000/api/users/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
-          password: formData.password,
-        }),
+          password: formData.password
+        })
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        // Always use localStorage for token storage
-        localStorage.setItem('authToken', data.token);
+      if (response.ok && data.token) {
+        // Store the JWT in localStorage or a cookie
+        const storage = formData.rememberMe ? localStorage : sessionStorage;
         
-        // Fetch full user data including avatar
+        // Store the token in both the selected storage and localStorage for backward compatibility
+        storage.setItem('authToken', data.token);
+        localStorage.setItem('authToken', data.token);
+
+        // Decode the token to get user info
+        const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+        
+        // Store the minimal user data we have from the token
+        const userData = {
+          userId: tokenPayload.userId,
+          username: tokenPayload.username,
+          // These will be updated when we fetch the full profile
+          avatar_url: null
+        };
+        
+        // Store user data in both the selected storage and localStorage
+        storage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('userData', JSON.stringify(userData));
+        
+        // Try to fetch additional user data if needed
         try {
-          const userResponse = await fetch('/api/users/me', {
+          const userResponse = await fetch('http://localhost:3000/api/users/me', {
             headers: {
               'Authorization': `Bearer ${data.token}`
             }
           });
-          
+
           if (userResponse.ok) {
-            const userData = await userResponse.json();
-            // Store user data in the same storage as token
-            storage.setItem('userData', JSON.stringify({
-              userId: userData.user_id,
-              username: userData.username,
-              avatar_url: userData.avatar_url
-            }));
-            // Also store in localStorage for backward compatibility
-            localStorage.setItem('userData', JSON.stringify({
-              userId: userData.user_id,
-              username: userData.username,
-              avatar_url: userData.avatar_url
-            }));
-          } else {
-            // Fallback to JWT data if user fetch fails
-            const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
-            storage.setItem('userData', JSON.stringify({
-              userId: tokenPayload.userId,
-              username: tokenPayload.username
-            }));
-            // Also store in localStorage for backward compatibility
-            localStorage.setItem('userData', JSON.stringify({
-              userId: tokenPayload.userId,
-              username: tokenPayload.username
-            }));
+            const fullUserData = await userResponse.json();
+            // Update with full user data if available
+            const updatedUserData = {
+              ...userData,
+              ...(fullUserData.avatar_url && { avatar_url: fullUserData.avatar_url })
+            };
+            
+            // Update storage with full user data
+            storage.setItem('userData', JSON.stringify(updatedUserData));
+            localStorage.setItem('userData', JSON.stringify(updatedUserData));
           }
         } catch (error) {
-          // Fallback to JWT data if user fetch fails
-          const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
-          storage.setItem('userData', JSON.stringify({
-            userId: tokenPayload.userId,
-            username: tokenPayload.username
-          }));
-          // Also store in localStorage for backward compatibility
-          localStorage.setItem('userData', JSON.stringify({
-            userId: tokenPayload.userId,
-            username: tokenPayload.username
-          }));
+          console.error('Error fetching user profile:', error);
+          // Continue with basic token data if this fails
         }
         
+        // Call the success callback to update the parent component
         onLoginSuccess();
+        
+        // Close the modal
+        onClose();
+        
+        // Dispatch a custom event to notify other components about the auth state change
+        window.dispatchEvent(new Event('authStateChanged'));
       } else {
         toast({
           title: "Login Failed",
@@ -274,12 +283,18 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
     setCurrentView('login');
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const resetForm = () => {
-    setFormData({ email: "", password: "", confirmPassword: "", name: "", rememberMe: false });
+    setFormData({
+      email: "",
+      password: "",
+      confirmPassword: "",
+      name: "",
+      rememberMe: false
+    });
     setCurrentView('login');
     setShowPassword(false);
   };
