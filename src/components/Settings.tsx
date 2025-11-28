@@ -7,20 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  User, 
   Shield, 
-  Bell, 
   Eye, 
   EyeOff,
   Moon, 
   Globe, 
-  Mail, 
-  Smartphone,
   Lock,
   Download,
   Trash2,
   ArrowLeft,
-  Loader2
+  Loader2,
+  LayoutGrid,
+  User
 } from "lucide-react";
 import {
   AlertDialog,
@@ -40,7 +38,7 @@ import { useTranslation } from "react-i18next";
 const Settings = () => {
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
-  const [activeSection, setActiveSection] = useState("account");
+  const [activeSection, setActiveSection] = useState("password");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
 const [passwordData, setPasswordData] = useState({
@@ -60,7 +58,7 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [settings, setSettings] = useState({
     // Account Settings
-    displayName: "",
+    username: "",
     email: "",
     bio: "",
     
@@ -72,12 +70,6 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     mentions: true,
     communityUpdates: true,
     
-    // Feed & Content Settings
-    adultContent: false,
-    autoplayMedia: true,
-    showThumbnails: true,
-    defaultSort: "hot",
-    
     // Appearance Settings
     theme: "dark", // Default to dark theme
     compactMode: false,
@@ -87,9 +79,13 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     country: "US"
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [userData, setUserData] = useState<{username?: string; email?: string; bio?: string}>({});
+
   useEffect(() => {
     // Fetch user data from backend
     const fetchUserData = async () => {
+      setIsLoading(true);
       try {
         const token = localStorage.getItem('authToken');
         
@@ -102,29 +98,47 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
           
           if (response.ok) {
             const userData = await response.json();
+            setUserData({
+              username: userData.username,
+              email: userData.email,
+              bio: userData.bio || ''
+            });
+            
+            // Update settings with user data
             setSettings(prev => ({
               ...prev,
-              displayName: userData.username,
-              email: userData.email
+              username: userData.username || '',
+              email: userData.email || '',
+              bio: userData.bio || ''
             }));
+          } else {
+            console.error('Failed to fetch user data:', response.statusText);
           }
+        } else {
+          console.warn('No auth token found in localStorage');
         }
         
         // Load other settings from localStorage
         const savedSettings = localStorage.getItem('userSettings');
         if (savedSettings) {
-          const parsed = JSON.parse(savedSettings);
-          setSettings(prev => ({ ...prev, ...parsed }));
-          // Apply theme immediately after loading settings
-          if (parsed.theme) {
-            applyTheme(parsed.theme);
+          try {
+            const parsed = JSON.parse(savedSettings);
+            setSettings(prev => ({ ...prev, ...parsed }));
+            // Apply theme immediately after loading settings
+            if (parsed.theme) {
+              applyTheme(parsed.theme);
+            }
+          } catch (e) {
+            console.error('Error parsing saved settings:', e);
           }
         } else {
           // Apply default dark theme if no saved settings
           applyTheme('dark');
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error('Error in fetchUserData:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -423,68 +437,34 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   };
 
   const sections = [
-     { id: "account", label: t('settings.nav.account'), icon: User },
-     { id: "notifications", label: t('settings.nav.notifications'), icon: Bell },
-     { id: "appearance", label: t('settings.nav.appearance'), icon: Moon },
-    { id: "language", label: t('settings.nav.language'), icon: Globe },
-     { id: "data", label: t('settings.nav.data'), icon: Download }
- ];
+    { id: "password", label: "Change Password", icon: Lock },
+    { id: "appearance", label: "Appearance", icon: Moon },
+    { id: "language", label: "Language & Region", icon: Globe },
+    { id: "data", label: "Data & Privacy", icon: Shield },
+  ];
 
-  const renderAccountSettings = () => (
+  const renderPasswordSettings = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-4">Account Information</h3>
+        <h3 className="text-lg font-medium mb-4">Change Password</h3>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="displayName">Display Name</Label>
-            <Input
-              id="displayName"
-              value={settings.displayName}
-              onChange={(e) => handleSettingChange("displayName", e.target.value)}
-              placeholder="Your display name"
-            />
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => setShowPasswordDialog(true)}
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              Change Password
+            </Button>
+            <p className="text-sm text-muted-foreground mt-2">
+              Update your password to keep your account secure.
+            </p>
           </div>
-          <div>
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              value={settings.email}
-              onChange={(e) => handleSettingChange("email", e.target.value)}
-              placeholder="your.email@example.com"
-            />
-          </div>
-          <div>
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              value={settings.bio}
-              onChange={(e) => handleSettingChange("bio", e.target.value)}
-              placeholder="Tell us about yourself..."
-              rows={3}
-            />
-          </div>
-        </div>
-      </div>
-      
-      <Separator />
-      
-      <div>
-        <h3 className="text-lg font-medium mb-4">Account Security</h3>
-        <div className="space-y-3">
-          <Button 
-            variant="outline" 
-            className="w-full justify-start"
-            onClick={() => setShowPasswordDialog(true)}
-          >
-            <Lock className="h-4 w-4 mr-2" />
-            Change Password
-          </Button>
         </div>
       </div>
     </div>
   );
-
 
 
   const renderNotificationSettings = () => (
@@ -564,65 +544,6 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     </div>
   );
 
-  const renderFeedSettings = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-4">Content Preferences</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Default Sort</Label>
-              <p className="text-sm text-muted-foreground">How posts are sorted by default</p>
-            </div>
-            <Select value={settings.defaultSort} onValueChange={(value) => handleSettingChange("defaultSort", value)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hot">Hot</SelectItem>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="top">Top</SelectItem>
-                <SelectItem value="rising">Rising</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Adult Content</Label>
-              <p className="text-sm text-muted-foreground">Show NSFW content (18+)</p>
-            </div>
-            <Switch
-              checked={settings.adultContent}
-              onCheckedChange={(checked) => handleSettingChange("adultContent", checked)}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Autoplay Media</Label>
-              <p className="text-sm text-muted-foreground">Automatically play videos and GIFs</p>
-            </div>
-            <Switch
-              checked={settings.autoplayMedia}
-              onCheckedChange={(checked) => handleSettingChange("autoplayMedia", checked)}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Show Thumbnails</Label>
-              <p className="text-sm text-muted-foreground">Display image previews in feed</p>
-            </div>
-            <Switch
-              checked={settings.showThumbnails}
-              onCheckedChange={(checked) => handleSettingChange("showThumbnails", checked)}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   const renderAppearanceSettings = () => (
     <div className="space-y-6">
@@ -852,13 +773,12 @@ const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const renderContent = () => {
     switch (activeSection) {
-      case "account": return renderAccountSettings();
-      case "notifications": return renderNotificationSettings();
+      case "password": return renderPasswordSettings();
       case "feed": return renderFeedSettings();
       case "appearance": return renderAppearanceSettings();
       case "language": return renderLanguageSettings();
       case "data": return renderDataSettings();
-      default: return renderAccountSettings();
+      default: return renderPasswordSettings();
     }
   };
 

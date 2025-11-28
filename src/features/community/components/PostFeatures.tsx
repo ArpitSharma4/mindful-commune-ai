@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import CommentSection from "@/components/CommentSection";
 import EditPostModal from "@/components/EditPostModal";
+import { sharePost } from "@/lib/share";
 
 interface JournalPostProps {
   post_id?: string;
@@ -260,11 +261,17 @@ const JournalPost = ({
     setCurrentCommentCount(newCount);
   };
 
-  const handleShare = () => {
-    toast({
-      title: "Post shared! 🤝",
-      description: "This story has been shared with others.",
-    });
+  const handleShare = async () => {
+    if (!postId) return;
+    const ok = await sharePost(postId, title);
+    if (!ok) {
+      toast({
+        title: "Share failed",
+        description: "Unable to share this post right now.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
   };
 
   const handleEditPost = () => {

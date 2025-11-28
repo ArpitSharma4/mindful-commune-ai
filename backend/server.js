@@ -23,6 +23,7 @@ const communityRoutes = require('./community/community.route');
 const postRoutes = require('./posts/posts.route');
 const journalRoutes = require('./journal/journal.route'); // <-- Added the new journal router
 const supportRoutes = require('./support/support.route'); // This was in your file, kept for consistency.
+const shareRoutes = require('./share/share.route');
 // Note: OAuth routes will be defined inline below for easier setup
 
 
@@ -254,6 +255,7 @@ app.use('/api/journal', journalRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/share', shareRoutes);
 
 // --- Error Handling & Final Middleware ---
 

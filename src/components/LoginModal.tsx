@@ -74,9 +74,8 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
 
       const data = await response.json();
 
-
       if (response.ok) {
-        // Store the JWT token
+        // Always use localStorage for token storage
         localStorage.setItem('authToken', data.token);
         
         // Fetch full user data including avatar
@@ -89,6 +88,13 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
           
           if (userResponse.ok) {
             const userData = await userResponse.json();
+            // Store user data in the same storage as token
+            storage.setItem('userData', JSON.stringify({
+              userId: userData.user_id,
+              username: userData.username,
+              avatar_url: userData.avatar_url
+            }));
+            // Also store in localStorage for backward compatibility
             localStorage.setItem('userData', JSON.stringify({
               userId: userData.user_id,
               username: userData.username,
@@ -97,6 +103,11 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
           } else {
             // Fallback to JWT data if user fetch fails
             const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+            storage.setItem('userData', JSON.stringify({
+              userId: tokenPayload.userId,
+              username: tokenPayload.username
+            }));
+            // Also store in localStorage for backward compatibility
             localStorage.setItem('userData', JSON.stringify({
               userId: tokenPayload.userId,
               username: tokenPayload.username
@@ -105,6 +116,11 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
         } catch (error) {
           // Fallback to JWT data if user fetch fails
           const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+          storage.setItem('userData', JSON.stringify({
+            userId: tokenPayload.userId,
+            username: tokenPayload.username
+          }));
+          // Also store in localStorage for backward compatibility
           localStorage.setItem('userData', JSON.stringify({
             userId: tokenPayload.userId,
             username: tokenPayload.username
@@ -263,7 +279,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
   };
 
   const resetForm = () => {
-    setFormData({ email: "", password: "", confirmPassword: "", name: "" });
+    setFormData({ email: "", password: "", confirmPassword: "", name: "", rememberMe: false });
     setCurrentView('login');
     setShowPassword(false);
   };
@@ -318,11 +334,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm">
-        <label className="flex items-center gap-2">
-          <input type="checkbox" className="rounded" />
-          Remember me
-        </label>
+      <div className="flex justify-end">
         <Button 
           type="button"
           variant="link" 
